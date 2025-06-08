@@ -6,6 +6,14 @@ csharp:
     description: Unsafe deserialization with BinaryFormatter
     pattern: BinaryFormatter\.Deserialize
     severity: high
+  - category: deserialization
+    description: Potentially dangerous serialization (type confusion)
+    pattern: DataContractSerializer
+    severity: medium
+  - category: deserialization
+    description: Unvalidated input deserialization
+    pattern: JavaScriptSerializer\.Deserialize
+    severity: high
   - category: sql-injection
     description: SQL injection via concatenated SQL string
     pattern: new\s+SqlCommand\(.*\+.*\)
@@ -17,6 +25,22 @@ csharp:
   - category: code-execution
     description: Command execution
     pattern: Process\.Start
+    severity: high
+  - category: xss
+    description: Potential XSS from improperly encoded user input
+    pattern: HttpUtility\.HtmlEncode\s*\(.*Request\..*\)
+    severity: medium
+  - category: input-validation
+    description: Unvalidated input from query string
+    pattern: Request\.QueryString\[.*\]
+    severity: medium
+  - category: xss
+    description: Possible reflection/XSS from unsanitized input
+    pattern: ViewData\[\".*\"\]\s*=\s*Request\..*
+    severity: medium
+  - category: crypto
+    description: Weak password derivation
+    pattern: new\s+PasswordDeriveBytes
     severity: high
   - category: crypto
     description: Weak hash function (MD5)
@@ -38,9 +62,25 @@ javascript:
     description: Potential DOM-based XSS (innerHTML assignment)
     pattern: innerHTML\s*=\s*
     severity: high
+  - category: xss
+    description: Potential DOM-based XSS (document.write)
+    pattern: document\.write\(
+    severity: high
   - category: data-leak
     description: Storing sensitive data in localStorage
     pattern: localStorage\.setItem\(
+    severity: medium
+  - category: network
+    description: Direct client-side communication (check origin)
+    pattern: XMLHttpRequest\(
+    severity: info
+  - category: network
+    description: Check for untrusted URL or missing CSP
+    pattern: fetch\(.*\)
+    severity: info
+  - category: code-execution
+    description: Dynamic execution in setTimeout
+    pattern: setTimeout\([\"'].*[\"'],?\s*\d*\)
     severity: medium
   - category: type-juggling
     description: "Loose equality \u2013 type coercion risk"
@@ -78,6 +118,18 @@ php:
     description: Command execution via system()
     pattern: system\(
     severity: high
+  - category: code-execution
+    description: Command execution via exec()
+    pattern: exec\(
+    severity: high
+  - category: code-execution
+    description: Command execution via passthru()
+    pattern: passthru\(
+    severity: high
+  - category: code-execution
+    description: Command execution via shell_exec()
+    pattern: shell_exec\(
+    severity: high
   - category: deserialization
     description: Unsafe deserialization
     pattern: unserialize\(
@@ -85,6 +137,22 @@ php:
   - category: sql-injection
     description: Potential SQL injection
     pattern: mysqli_query\(.*\$_(GET|POST|REQUEST)
+    severity: high
+  - category: sql-injection
+    description: Potential SQL injection
+    pattern: pdo->query\(.*\$_(GET|POST|REQUEST)
+    severity: high
+  - category: credential-management
+    description: Hardcoded password
+    pattern: password\s*=\s*[\"'].*[\"']
+    severity: critical
+  - category: crypto
+    description: Weak hashing algorithm (MD5)
+    pattern: md5\(
+    severity: high
+  - category: crypto
+    description: Weak hashing algorithm (SHA1)
+    pattern: sha1\(
     severity: high
   - category: type-juggling
     description: "Loose comparison \u2013 type juggling risk"

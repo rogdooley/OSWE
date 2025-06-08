@@ -70,7 +70,7 @@ def find_matches(base_dir, rules, include_dirs, exclude_dirs, git_only, context_
                         lines = f.readlines()
                         full_text = ''.join(lines)
                         for rule in patterns['rules']:
-                            for match in re.finditer(rule['pattern'], full_text, re.MULTILINE | re.DOTALL):
+                            for match in re.finditer(rule['pattern'], full_text, re.MULTILINE | re.DOTALL | re.IGNORECASE):
                                 lineno = full_text[:match.start()].count('\n') + 1
                                 if lineno - 1 < len(lines) and line_is_suppressed(lines[lineno - 1]):
                                     continue

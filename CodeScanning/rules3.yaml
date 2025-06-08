@@ -1,0 +1,120 @@
+csharp:
+  extensions:
+  - .cs
+  rules:
+  - category: code-execution
+    description: Dynamic type instantiation (may allow RCE)
+    pattern: Activator\.CreateInstance
+    severity: high
+  - category: code-execution
+    description: Loading of dynamic assemblies
+    pattern: Assembly\.Load
+    severity: high
+  - category: input-validation
+    description: Direct access to user input
+    pattern: HttpContext\.Current\.Request\[
+    severity: medium
+  - category: code-execution
+    description: Code execution on server
+    pattern: Server\.Execute
+    severity: high
+  - category: input-validation
+    description: Dynamic view data (validate source)
+    pattern: ViewBag\.
+    severity: medium
+java:
+  extensions:
+  - .java
+  rules:
+  - category: code-execution
+    description: Dynamic native library loading
+    pattern: System\.loadLibrary
+    severity: high
+  - category: code-execution
+    description: Command execution
+    pattern: Runtime\.getRuntime\(\)\.exec
+    severity: high
+  - category: deserialization
+    description: Deserialization of untrusted data
+    pattern: ObjectInputStream\s+.*readObject
+    severity: high
+  - category: input-validation
+    description: Unvalidated user input
+    pattern: request\.getParameter\(
+    severity: medium
+  - category: open-redirect
+    description: Open redirect
+    pattern: response\.sendRedirect\(.*request\.getParameter\(
+    severity: medium
+javascript:
+  extensions:
+  - .js
+  rules:
+  - category: prototype-pollution
+    description: Prototype pollution via direct prototype access
+    pattern: Object\.prototype\[
+    severity: high
+  - category: prototype-pollution
+    description: Prototype pollution vector
+    pattern: __proto__
+    severity: high
+  - category: xss
+    description: "Access to document.location \u2013 may enable open redirect or XSS"
+    pattern: document\.location
+    severity: medium
+  - category: xss
+    description: Potential DOM-based XSS (innerHTML assignment)
+    pattern: innerHTML\s*=\s*
+    severity: high
+  - category: security-misconfiguration
+    description: "Access to cookies \u2013 may indicate session handling risks"
+    pattern: document\.cookie
+    severity: medium
+php:
+  extensions:
+  - .php
+  rules:
+  - category: sqli
+    description: Direct user input concatenation
+    pattern: \$_(GET|POST|REQUEST)\[.*\]\s*\.
+    severity: high
+  - category: xss
+    description: User input directly echoed
+    pattern: echo\s+\$_(GET|POST|REQUEST)
+    severity: high
+  - category: file-inclusion
+    description: File inclusion via user input
+    pattern: file_get_contents\(\$_(GET|POST|REQUEST)
+    severity: high
+  - category: serialization
+    description: Unsafe data serialization
+    pattern: serialize\(
+    severity: medium
+  - category: input-validation
+    description: "Cookie access \u2013 validate or sanitize usage"
+    pattern: \$_COOKIE\[.*\]
+    severity: medium
+python:
+  extensions:
+  - .py
+  rules:
+  - category: deserialization
+    description: Unsafe YAML deserialization (use yaml.safe_load)
+    pattern: yaml\.load
+    severity: high
+  - category: input-validation
+    description: Unvalidated GET parameter access
+    pattern: flask\.request\.args\[.*\]
+    severity: medium
+  - category: input-validation
+    description: Unvalidated POST parameter access
+    pattern: flask\.request\.form\[.*\]
+    severity: medium
+  - category: code-execution
+    description: Command execution via os.system
+    pattern: os\.system
+    severity: high
+  - category: xss
+    description: Deprecated HTML escaping method
+    pattern: cgi\.escape
+    severity: low
