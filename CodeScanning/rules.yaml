@@ -1,0 +1,204 @@
+python:
+  extensions: [".py"]
+  rules:
+    - pattern: 'eval\\('
+      description: 'Arbitrary code execution (eval)'
+      severity: critical
+      category: code-execution
+    - pattern: 'exec\\('
+      description: 'Arbitrary code execution (exec)'
+      severity: critical
+      category: code-execution
+    - pattern: 'pickle\\.load'
+      description: 'Unsafe deserialization with pickle'
+      severity: high
+      category: deserialization
+    - pattern: 'marshal\\.loads'
+      description: 'Unsafe deserialization with marshal'
+      severity: high
+      category: deserialization
+    - pattern: 'subprocess\\.(Popen|call|run|check_output)'
+      description: 'Command execution via subprocess'
+      severity: high
+      category: code-execution
+    - pattern: 'input\\('
+      description: 'User input without sanitization'
+      severity: medium
+      category: input-validation
+    - pattern: 'sqlite3\\.connect\\(.*\\)'
+      description: 'Database connection (check for string concatenation)'
+      severity: medium
+      category: sql-injection
+    - pattern: 'cursor\\.execute\\(.*\\+.*\\)'
+      description: 'Potential SQL injection (dynamic query)'
+      severity: high
+      category: sql-injection
+    - pattern: 'password\\s*=\\s*["\'].*["\']'
+      description: 'Hardcoded password'
+      severity: critical
+      category: credential-management
+    - pattern: 'hashlib\\.md5'
+      description: 'Weak hash function (MD5)'
+      severity: high
+      category: crypto
+    - pattern: 'hashlib\\.sha1'
+      description: 'Weak hash function (SHA1)'
+      severity: high
+      category: crypto
+    - pattern: 'render\\(.+request\\.GET\\[.+\\]'
+      description: 'Potential XSS from unsanitized input in render'
+      severity: high
+      category: xss
+    - pattern: '\\b(SELECT|UPDATE|DELETE|INSERT|CREATE|ALTER|DROP)\\b'
+      description: 'Raw SQL command in query'
+      severity: medium
+      category: sql-injection
+    - pattern: 'execute\\(.*["\'].*(WHERE|VALUES).*?[\'"]'
+      description: 'SQL statement using string with WHERE/VALUES'
+      severity: high
+      category: sql-injection
+    - pattern: 'f?["\'].*(SELECT|UPDATE|DELETE|INSERT).*{.*}.*["\']'
+      description: 'SQL in f-string – possible injection'
+      severity: high
+      category: sql-injection
+    - pattern: 'session\\.execute\\(.*\\+.*\\)'
+      description: 'SQLAlchemy query concatenation'
+      severity: high
+      category: sql-injection
+    - pattern: '==\\s*[^=]'
+      description: 'Loose equality – may allow type juggling'
+      severity: medium
+      category: type-juggling
+
+java:
+  extensions: [".java"]
+  rules:
+    - pattern: 'Runtime\\.getRuntime\\(\\)\\.exec'
+      description: 'Command execution via Runtime.exec'
+      severity: high
+      category: code-execution
+    - pattern: 'ProcessBuilder'
+      description: 'Command execution via ProcessBuilder'
+      severity: high
+      category: code-execution
+    - pattern: 'ObjectInputStream'
+      description: 'Unsafe deserialization with ObjectInputStream'
+      severity: high
+      category: deserialization
+    - pattern: 'XMLDecoder'
+      description: 'Insecure XML deserialization with XMLDecoder'
+      severity: high
+      category: deserialization
+    - pattern: 'XStream\\.fromXML'
+      description: 'Insecure XML deserialization with XStream'
+      severity: high
+      category: deserialization
+    - pattern: 'ScriptEngine\\.eval'
+      description: 'Code execution via ScriptEngine.eval'
+      severity: high
+      category: code-execution
+    - pattern: 'Statement\\.execute(Query|Update)'
+      description: 'SQL injection via Statement execution'
+      severity: high
+      category: sql-injection
+    - pattern: 'PreparedStatement.*\\.set.*\\(.*\\+'
+      description: 'SQL injection via parameter concatenation'
+      severity: high
+      category: sql-injection
+    - pattern: 'Class\\.forName\\('
+      description: 'Dynamic class loading (may be dangerous)'
+      severity: medium
+      category: code-execution
+    - pattern: 'Cipher\\.getInstance\\(".*ECB.*"'
+      description: 'Insecure cipher mode (ECB)'
+      severity: high
+      category: crypto
+    - pattern: 'MessageDigest\\.getInstance\\("MD5"'
+      description: 'Weak hash function (MD5)'
+      severity: high
+      category: crypto
+    - pattern: 'MessageDigest\\.getInstance\\("SHA1"'
+      description: 'Weak hash function (SHA1)'
+      severity: high
+      category: crypto
+    - pattern: 'new\\s+FileInputStream\\('
+      description: 'File read access (check for tainted input)'
+      severity: medium
+      category: file-io
+    - pattern: 'new\\s+FileOutputStream\\('
+      description: 'File write access (check for tainted input)'
+      severity: medium
+      category: file-io
+    - pattern: 'password\\s*=\\s*".*"'
+      description: 'Hardcoded password'
+      severity: critical
+      category: credential-management
+    - pattern: 'request\\.getParameter\\('
+      description: 'Unvalidated user input (check usage context)'
+      severity: medium
+      category: input-validation
+    - pattern: 'response\\.getWriter\\(\\)\\.write\\(.*request\\.getParameter\\('
+      description: 'Possible XSS via direct output'
+      severity: high
+      category: xss
+    - pattern: '\\b(SELECT|UPDATE|DELETE|INSERT|CREATE|ALTER|DROP)\\b'
+      description: 'Raw SQL operation detected'
+      severity: medium
+      category: sql-injection
+    - pattern: '\\b(WHERE|VALUES)\\b.*?\''
+      description: 'Potential SQL injection (WHERE/VALUES + quote)'
+      severity: high
+      category: sql-injection
+    - pattern: '\\b(WHERE|VALUES)\\b.*?"\\s*\\+'
+      description: 'Dynamic SQL string with unsafe concatenation'
+      severity: high
+      category: sql-injection
+    - pattern: '.*sql.*"'
+      description: 'Dynamic SQL string – verify sanitization'
+      severity: info
+      category: sql-injection
+    - pattern: 'jdbcTemplate'
+      description: 'JDBC usage – verify SQL sanitization'
+      severity: info
+      category: sql-injection
+    - pattern: '==\\s*[^=]'
+      description: 'Loose equality – potential type coercion issue'
+      severity: medium
+      category: type-juggling
+
+php:
+  extensions: [".php"]
+  rules:
+    - pattern: '==\\s*[^=]'
+      description: 'Loose comparison – type juggling risk'
+      severity: high
+      category: type-juggling
+    - pattern: '\\b(SELECT|UPDATE|DELETE|INSERT|CREATE|ALTER|DROP)\\b'
+      description: 'Raw SQL command detected'
+      severity: medium
+      category: sql-injection
+    - pattern: '\\$_(GET|POST|REQUEST).*?\\.'
+      description: 'Possible input concatenation in SQL'
+      severity: high
+      category: sql-injection
+    # (existing rules would go here with added severity and category)
+
+javascript:
+  extensions: [".js"]
+  rules:
+    - pattern: '==[^=]'
+      description: 'Loose equality – type coercion risk'
+      severity: 'medium'
+      category: 'type-juggling'
+
+csharp:
+  extensions: [".cs"]
+  rules:
+    - pattern: '\\b(SELECT|UPDATE|DELETE|INSERT|CREATE|ALTER|DROP)\\b'
+      description: 'Raw SQL operation detected'
+      severity: 'medium'
+      category: 'sql-injection'
+    - pattern: 'SqlCommand\\s+.*\\+'
+      description: 'SQL command with dynamic string'
+      severity: 'high'
+      category: 'sql-injection'

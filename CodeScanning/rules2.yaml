@@ -1,0 +1,92 @@
+csharp:
+  extensions:
+  - .cs
+  rules:
+  - category: deserialization
+    description: Unsafe deserialization with BinaryFormatter
+    pattern: BinaryFormatter\.Deserialize
+    severity: high
+  - category: sql-injection
+    description: SQL injection via concatenated SQL string
+    pattern: new\s+SqlCommand\(.*\+.*\)
+    severity: high
+  - category: sql-injection
+    description: Dynamic SQL query - SQL injection risk
+    pattern: SqlCommand\.CommandText\s*=\s*.*\+.*
+    severity: high
+  - category: code-execution
+    description: Command execution
+    pattern: Process\.Start
+    severity: high
+  - category: crypto
+    description: Weak hash function (MD5)
+    pattern: MD5CryptoServiceProvider
+    severity: high
+javascript:
+  extensions:
+  - .js
+  rules:
+  - category: code-execution
+    description: Arbitrary code execution (eval)
+    pattern: eval\(
+    severity: critical
+  - category: code-execution
+    description: Dynamic function execution
+    pattern: new\s+Function\(
+    severity: high
+  - category: xss
+    description: Potential DOM-based XSS (innerHTML assignment)
+    pattern: innerHTML\s*=\s*
+    severity: high
+  - category: data-leak
+    description: Storing sensitive data in localStorage
+    pattern: localStorage\.setItem\(
+    severity: medium
+  - category: type-juggling
+    description: "Loose equality \u2013 type coercion risk"
+    pattern: ==[^=]
+    severity: medium
+php:
+  extensions:
+  - .php
+  rules:
+  - category: code-execution
+    description: Arbitrary code execution via eval
+    pattern: eval\(
+    severity: critical
+  - category: code-execution
+    description: Remote code execution via assert
+    pattern: assert\(
+    severity: critical
+  - category: code-execution
+    description: Dynamic function definition (RCE)
+    pattern: create_function\(
+    severity: high
+  - category: file-inclusion
+    description: File inclusion vulnerability
+    pattern: include\s*\(.*\$_(GET|POST|REQUEST)
+    severity: high
+  - category: file-inclusion
+    description: File inclusion vulnerability
+    pattern: require\s*\(.*\$_(GET|POST|REQUEST)
+    severity: high
+  - category: code-execution
+    description: Code execution via preg_replace /e modifier
+    pattern: preg_replace\s*\(.*?/e.*?/
+    severity: high
+  - category: code-execution
+    description: Command execution via system()
+    pattern: system\(
+    severity: high
+  - category: deserialization
+    description: Unsafe deserialization
+    pattern: unserialize\(
+    severity: high
+  - category: sql-injection
+    description: Potential SQL injection
+    pattern: mysqli_query\(.*\$_(GET|POST|REQUEST)
+    severity: high
+  - category: type-juggling
+    description: "Loose comparison \u2013 type juggling risk"
+    pattern: ==\s*[^=]
+    severity: high
