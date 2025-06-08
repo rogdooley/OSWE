@@ -23,6 +23,21 @@ def load_rules_from_yaml(yaml_file):
     with open(yaml_file, 'r') as f:
         return yaml.safe_load(f)
 
+def load_rules_from_multiple_yamls(yaml_files):
+    merged_rules = {}
+    for file in yaml_files:
+        with open(file, 'r') as f:
+            rule_set = yaml.safe_load(f)
+            for lang, lang_data in rule_set.items():
+                if lang not in merged_rules:
+                    merged_rules[lang] = {"extensions": set(), "rules": []}
+                merged_rules[lang]["extensions"].update(lang_data.get("extensions", []))
+                merged_rules[lang]["rules"].extend(lang_data.get("rules", []))
+    # Convert sets back to lists
+    for lang in merged_rules:
+        merged_rules[lang]["extensions"] = list(merged_rules[lang]["extensions"])
+    return merged_rules
+
 def load_dir_list(file_path):
     if not file_path or not os.path.exists(file_path):
         return set()
@@ -97,7 +112,7 @@ def find_matches(base_dir, rules, include_dirs, exclude_dirs, git_only, context_
 def parse_args():
     parser = argparse.ArgumentParser(description="Advanced source code pattern scanner.")
     parser.add_argument('--directory', '-d', required=True, help="Directory to scan")
-    parser.add_argument('--rules', '-r', required=True, help="YAML rule file")
+    parser.add_argument('--rules', '-r', required=True, nargs='+', help="One or more YAML rule files")
     parser.add_argument('--json-output', '-o', help="Write results to JSON file")
     parser.add_argument('--include', help="File listing directories to include")
     parser.add_argument('--exclude', help="File listing directories to exclude")
@@ -107,7 +122,8 @@ def parse_args():
 
 def main():
     args = parse_args()
-    rules = load_rules_from_yaml(args.rules)
+    #rules = load_rules_from_yaml(args.rules)
+    rules = load_rules_from_multiple_yamls(args.rules)
     include_dirs = load_dir_list(args.include)
     exclude_dirs = load_dir_list(args.exclude)
 

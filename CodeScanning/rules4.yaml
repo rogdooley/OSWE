@@ -1,0 +1,104 @@
+go:
+  extensions:
+  - .go
+  rules:
+  - category: code-execution
+    description: Dynamic function execution via reflection
+    pattern: reflect\.Value\.Call
+    severity: high
+  - category: ssrf
+    description: Unfiltered HTTP fetch (SSRF risk)
+    pattern: http\.Get\(.*\)
+    severity: high
+  - category: auth-bypass
+    description: Always-true check (logic flaw)
+    pattern: if\s+.*\|\|\s+true\s*{
+    severity: high
+javascript:
+  extensions:
+  - .js
+  rules:
+  - category: code-execution
+    description: Dynamic method resolution (reflection)
+    pattern: window\[.*\]\(
+    severity: high
+  - category: ssrf
+    description: Unvalidated URL fetch (potential SSRF)
+    pattern: fetch\(\w+
+    severity: high
+  - category: auth-bypass
+    description: Always-true logic condition (auth bypass risk)
+    pattern: if\s*\(.*\|\|\s*true\)
+    severity: high
+php:
+  extensions:
+  - .php
+  rules:
+  - category: code-execution
+    description: User input used to invoke function dynamically
+    pattern: \$_(GET|POST|REQUEST)\[.*\]\(.*\)
+    severity: high
+  - category: ssrf
+    description: User-controlled URL fetch (potential SSRF)
+    pattern: curl_exec\(.*\$_(GET|POST|REQUEST)
+    severity: high
+  - category: auth-bypass
+    description: Always-true logic in condition (auth bypass)
+    pattern: if\s*\(.*\|\|\s*true\)
+    severity: high
+python:
+  extensions:
+  - .py
+  rules:
+  - category: code-execution
+    description: "Dynamic attribute access \u2013 risky reflection"
+    pattern: getattr\(.*\)
+    severity: high
+  - category: code-execution
+    description: "Dynamic module import \u2013 potential RCE"
+    pattern: __import__\(
+    severity: high
+  - category: ssrf
+    description: External request from potentially untrusted input (SSRF)
+    pattern: requests\.(get|post|put|delete)\(\s*\w+
+    severity: high
+  - category: auth-bypass
+    description: "Logic flaw \u2013 always-true condition (possible auth bypass)"
+    pattern: 'if\s+.*\s+or\s+True\s*:'
+    severity: high
+ruby:
+  extensions:
+  - .rb
+  rules:
+  - category: code-execution
+    description: Arbitrary code execution via eval
+    pattern: eval\(
+    severity: critical
+  - category: code-execution
+    description: Dynamic method invocation (possible RCE)
+    pattern: send\(
+    severity: high
+  - category: ssrf
+    description: Unvalidated external resource access (SSRF)
+    pattern: open\(.*\)
+    severity: high
+  - category: auth-bypass
+    description: Always-true condition (logic flaw)
+    pattern: if\s+.*\s+or\s+true
+    severity: high
+shell:
+  extensions:
+  - .sh
+  rules:
+  - category: code-execution
+    description: Command injection via dynamic variable execution
+    pattern: \$\(\$\{[^}]+\}\)
+    severity: critical
+  - category: ssrf
+    description: Unvalidated URL passed to curl (SSRF risk)
+    pattern: curl\s+\$\{?\w+\}?
+    severity: high
+  - category: auth-bypass
+    description: Always-true auth logic in shell
+    pattern: if\s+\[\s+.*\s+-o\s+1\s+\]
+    severity: high
