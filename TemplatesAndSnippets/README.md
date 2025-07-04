@@ -74,11 +74,4 @@ Comprehension patterns:
 - Dictionary inversion
 - Practical transformations on structured data
 
----
 
-## Notes
-
-- All snippets are standalone and designed for adaptation.
-- Naming is consistent with intent: utilities, examples, or templates.
-- Code style follows PEP 8 where possible.
-- Imports are included for clarity even if not used globally.
