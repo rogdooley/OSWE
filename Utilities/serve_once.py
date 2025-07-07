@@ -45,9 +45,15 @@ def start_server(file_path: Path, port: int):
         httpd.shutdown()
         server_thread.join()
 
+def file_path(value):
+    p = Path(value)
+    if not p.is_file():
+        raise argparse.ArgumentTypeError(f"File '{value}' does not exist.")
+    return p
+
 def main():
     parser = argparse.ArgumentParser(description="Serve a file once via temporary HTTP server.")
-    parser.add_argument("file", type=Path, help="Path to the file to serve")
+    parser.add_argument("file", type=file_path, help="Path to the file to serve")
     parser.add_argument("--port", type=int, default=8000, help="Port to host the server on")
     parser.add_argument("--wait", type=int, default=30, help="Time to wait between port availability checks (in seconds)")
     args = parser.parse_args()
