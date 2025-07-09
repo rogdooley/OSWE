@@ -1,0 +1,4 @@
+[2025-07-09 14:52:31,557] INFO: Logger working
+[2025-07-09 18:45:12,653] INFO: Starting server on port 8888 with route /qXMG7Hly
+[2025-07-09 18:46:08,898] INFO: Incoming GET request to /qXMG7Hly
+[2025-07-09 18:46:08,901] ERROR: File not found test.zip
