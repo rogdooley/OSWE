@@ -8,6 +8,24 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 """
+serve_once.py
+
+Author: Roger Dooley
+Purpose: Serve a single file one time via HTTP and shut down automatically after serving.
+
+This script is designed for stealthy file delivery or payload drops in exploit chains,
+red team operations, or controlled environments like OSWE labs.
+
+Usage:
+    python3 serve_once.py payload.zip
+
+Features:
+- Randomized route support
+- One-time delivery (closes server after single request)
+- Logs connection source and file served
+
+Requires: flask
+
 (c) Roger Dooley
 Reusable Scripts for Security Labs and PoCs
 

@@ -14,11 +14,42 @@ from datetime import datetime, timezone
 
 
 """
-(c) Roger Dooley
-Reusable Scripts for Security Labs and PoCs
+file_transfer_server.py
 
-This script is free to use, modify, and share for educational and lawful security testing purposes only.
-Attribution required if redistributed.
+Author: Roger Dooley
+Created for: Offensive Security OSWE (WEB-300) coursework and PoC development
+
+This module defines the `FileTransferServer` class, a lightweight and configurable
+Flask-based HTTP server for file upload/download and base64-encoded data transfer.
+
+Key Features:
+- Handles GET and POST requests with configurable transfer limits
+- Supports raw file uploads or base64-encoded payloads (JSON or query parameter)
+- Optional HTML landing page for downloads
+- Graceful shutdown via internal thread watcher or authenticated route
+- Console and file logging with configurable verbosity
+- Dynamic route generation to support unique URLs in PoCs
+
+Usage:
+    from file_transfer_server import FileTransferServer
+
+    fts = FileTransferServer(
+        file_path="loot.zip",
+        save_dir="/tmp",
+        direction="upload",
+        limit=1,
+        encoded=True,
+        enable_html_page=True,
+        html_page_route='/transfer'
+    )
+    fts.start()
+
+Intended for integration into proof-of-concept scripts, red team operations,
+CTFs, and automated offensive workflows.
+
+Note:
+This module is not intended for long-term production use. Use responsibly and only
+in environments where you have explicit permission to perform testing.
 """
 
 

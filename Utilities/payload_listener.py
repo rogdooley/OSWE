@@ -10,6 +10,26 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
 """
+payload_listener.py
+
+Author: Roger Dooley
+Purpose: Simple HTTP listener to receive data exfiltration or payload callbacks.
+
+This script prints all incoming POST requests to stdout and is useful for:
+- Blind injection testing (e.g., XXE, SQLi, SSTI)
+- Receiving exfiltrated content in PoCs
+- Lightweight beacon listeners in labs
+
+Usage:
+    python3 payload_listener.py 8080
+
+Features:
+- Accepts and logs all POST body data
+- Displays a banner on startup
+- Runs until interrupted
+
+Requires: flask
+
 (c) Roger Dooley
 Reusable Scripts for Security Labs and PoCs
 
