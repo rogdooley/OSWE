@@ -3,15 +3,32 @@ import string
 import logging
 import threading
 import time
+import base64
+import typing
+import json
 
 from pathlib import Path
-from flask import Flask, request, send_file, abort
+from flask import Flask, request, send_file, abort, render_template_string
 from werkzeug.serving import make_server
+
+html_template = """
+<html>
+<head>
+<title>File Transfer Page</title>
+</head>
+<body>
+    <h2>Download Available</h2>
+    <a href="{{ route }}">Download {{ filename }}</a>
+</body>
+</html>
+"""
+
 
 class FileTransferServer:
     def __init__(self, file_path, save_dir, direction='download', limit=1, encoded=False,
                 route=None, port=8888, log_to_console=True, log_to_file=False,
-                log_file_path='transfer.log', log_level='INFO'):
+                log_file_path='transfer.log', log_level='INFO', enable_html_page=False,
+                html_page_route='/transfer'):
         self.file_path = file_path
         self.save_dir = save_dir
         self.direction = direction
@@ -24,15 +41,19 @@ class FileTransferServer:
         self.log_level = log_level.upper()
         self._setup_logging()
         self.verbose_repr = self.logger.level
+        self.enable_html_page = enable_html_page
+        self.html_page_route = html_page_route
 
         self.transfer_count = 0
         self.route = route or self._generate_route()
 
         self.app = Flask(__name__)
         self._configure_routes()
+        if self.enable_html_page:
+            self._configure_html_page()
 
 
-    def _generate_route(self, length=8):
+    def _generate_route(self, length=8) -> str:
         return '/' + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
@@ -67,17 +88,22 @@ class FileTransferServer:
 
         @self.app.route('/__shutdown', methods=['POST'])
         def shutdown():
+            if request.remote_addr != '127.0.0.1':
+                self.logger.warning("Unauthorized shutdown attempt from %s", request.remote_addr)
+                abort(403)
+            
             self.logger.warning("Manual shutdown initiated via /__shutdown")
             shutdown_thread = threading.Thread(target=self.server_thread.shutdown)
             shutdown_thread.start()
             return {"status": "shutting down"}, 200
+
 
         if self.direction in [ 'download', 'both']:
             @self.app.route(self.route, methods=['GET'])
             def handle_download():
                 self.logger.info("Incoming GET request to %s", self.route)
                 if self.transfer_count >= self.limit:
-                    self.logger.warning("Transfer limite reached. Aborting.")
+                    self.logger.warning("Transfer limit reached. Aborting.")
                     abort(410)
                 if not Path(self.file_path).exists():
                     self.logger.error("File not found %s", self.file_path)
@@ -95,18 +121,53 @@ class FileTransferServer:
                     self.logger.warning("Upload limit reached. Aborting.")
                     abort(410)
 
-                if 'file' not in request.files:
-                    self.logger.error("No file part in request.")
-                    abort(400)
 
-                file = request.files['file']
-                filename = file.filename
-                save_path = Path(self.save_dir) / filename
-                file.save(save_path)
+                if self.encoded:
+                    json_response = request.get_json()
+                    if json_response:
+                        json_filename = None
+                        json_encoded_data = None
+                        json_filename = json_response.get('filename')
+                        json_encoded_data = json_response.get('data')
+                        if json_filename and json_encoded_data:
+                            save_path = self._decode_and_save(json_encoded_data, json_filename)
+                    else:
+                        raw_data = request.get_data(as_text=True)
+                        fallback_filename = 'uploaded.bin'
+                        save_path = self._decode_and_save(raw_data, fallback_filename)
+                        self.logger.info("Could not process upload")
+                        self.logger.info(f"Content: {request.get_data(as_text=True)}")
+                elif request.files:
+                    file = request.files['file']
+                    filename = file.filename
+                    save_path = Path(self.save_dir) / filename
+                    file.save(save_path)
+                else:
+                    self.logger.warning("No valid upload method detected (encoded or file)")
+                    abort(400)
 
                 self.transfer_count += 1
                 self.logger.info("Saved upload %s (count: %d/%d)", save_path, self.transfer_count, self.limit)
                 return {"status" : 'uploaded', 'path': str(save_path)}, 200
+
+
+    def _configure_html_page(self):
+        if not self.html_page_route.startswith("/"):
+            route = "/" + self.html_page_route
+        else:
+            route = self.html_page_route
+        @self.app.route(f"{route}", methods=['GET'])
+        def render_transfer_page():
+            self.logger.debug("HTML page requested from %s", request.remote_addr)
+            return render_template_string(html_template, route=self.route, filename=Path(self.file_path).name)
+
+
+    def _decode_and_save(self, data: str, filename: str) -> Path:
+        decoded_data = base64.b64decode(data.encode('utf-8'))
+        save_to = self.save_dir / filename
+        with open(save_to, 'wb') as f:
+            f.write(decoded_data)
+        return save_to
 
 
     def start(self):
@@ -138,11 +199,10 @@ class FileTransferServer:
         threading.Thread(target=shutdown_watcher, daemon=True).start()
     
     def stop(self):
-        self.logger.warning("Manual stop() called")
         if hasattr(self, 'server_thread'):
             self.server_thread.shutdown()
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.verbose_repr:
             return (f"FileTransferServer:\n"
                     f"  direction: {self.direction}\n"
@@ -153,7 +213,7 @@ class FileTransferServer:
         else:
             return f"<FileTransferServer {self.direction.upper()} route={self.route} port={self.port}>"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
      return (f"<FileTransferServer(direction={self.direction}, "
             f"route='{self.route}', port={self.port}, "
             f"limit={self.limit}, encoded={self.encoded})>")
