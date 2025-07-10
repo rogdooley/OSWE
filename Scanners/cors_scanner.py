@@ -5,6 +5,14 @@ from urllib.parse import urlparse
 from datetime import datetime
 from pathlib import Path
 
+"""
+(c) Roger Dooley
+Reusable Scripts for Security Labs and PoCs
+
+This script is free to use, modify, and share for educational and lawful security testing purposes only.
+Attribution required if redistributed.
+"""
+
 # Common origins used for testing
 TEST_ORIGINS = [
     "https://evil.com",

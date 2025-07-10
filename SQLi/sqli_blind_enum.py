@@ -5,6 +5,14 @@ import argparse
 import base64
 import time
 
+"""
+(c) Roger Dooley
+Reusable Scripts for Security Labs and PoCs
+
+These utilities were developed to support offensive security training, PoC delivery, and CTF workflows.
+Free to use, modify, and share for lawful educational or testing purposes. Attribution required if redistributed.
+"""
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 KNOWN_VERSIONS = {

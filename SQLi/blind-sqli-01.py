@@ -7,6 +7,13 @@ import time
 from urllib.parse import quote_plus
 from concurrent.futures import ThreadPoolExecutor
 
+"""
+(c) Roger Dooley
+Reusable Scripts for Security Labs and PoCs
+
+These utilities were developed to support offensive security training, PoC delivery, and CTF workflows.
+Free to use, modify, and share for lawful educational or testing purposes. Attribution required if redistributed.
+"""
 
 def status_oracle(user, target_url, query, proxies=None):
     payload = quote_plus(f"{user}' AND ({query})-- -")

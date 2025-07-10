@@ -7,6 +7,14 @@ import time
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
+"""
+(c) Roger Dooley
+Reusable Scripts for Security Labs and PoCs
+
+This script is free to use, modify, and share for educational and lawful security testing purposes only.
+Attribution required if redistributed.
+"""
+
 class SingleUseHandler(SimpleHTTPRequestHandler):
     file_requested = False
     file_name = None

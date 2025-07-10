@@ -9,6 +9,14 @@ from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
+"""
+(c) Roger Dooley
+Reusable Scripts for Security Labs and PoCs
+
+This script is free to use, modify, and share for educational and lawful security testing purposes only.
+Attribution required if redistributed.
+"""
+
 LOG_FILE = "received_payloads.log"
 
 def is_port_in_use(port: int) -> bool:

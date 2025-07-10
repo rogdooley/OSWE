@@ -6,6 +6,14 @@ from urllib.parse import quote
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 
+"""
+(c) Roger Dooley
+Reusable Scripts for Security Labs and PoCs
+
+These utilities were developed to support offensive security training, PoC delivery, and CTF workflows.
+Free to use, modify, and share for lawful educational or testing purposes. Attribution required if redistributed.
+"""
+
 HEADERS_TEMPLATE = {
     "User-Agent": "Mozilla/5.0",
     "Content-Type": "application/x-www-form-urlencoded"

@@ -12,6 +12,17 @@ from flask import Flask, request, send_file, abort, render_template_string
 from werkzeug.serving import make_server
 from datetime import datetime, timezone
 
+
+"""
+(c) Roger Dooley
+Reusable Scripts for Security Labs and PoCs
+
+This script is free to use, modify, and share for educational and lawful security testing purposes only.
+Attribution required if redistributed.
+"""
+
+
+
 html_template = """
 <html>
 <head>
@@ -238,4 +249,5 @@ class FileTransferServer:
      return (f"<FileTransferServer(direction={self.direction}, "
             f"route='{self.route}', port={self.port}, "
             f"limit={self.limit}, encoded={self.encoded})>")
+
 
