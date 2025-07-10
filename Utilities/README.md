@@ -38,7 +38,8 @@ fts = FileTransferServer(
     log_to_console=True,
     log_to_file=True,
     log_file_path="fts.log",
-    enable_html_page=True
+    enable_html_page=True,
+    html_page_route='/transfer'
 )
 fts.start()
 ```
