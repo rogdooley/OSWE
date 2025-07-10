@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from flask import Flask, request, send_file, abort, render_template_string
 from werkzeug.serving import make_server
+from datetime import datetime, timezone
 
 html_template = """
 <html>
@@ -112,6 +113,26 @@ class FileTransferServer:
                 self.transfer_count += 1
                 self.logger.info("Transferred %s (count: %d/%d)", self.file_path, self.transfer_count, self.limit)
                 return send_file(self.file_path, as_attachment=True)
+
+            @self.app.route('/exfil', methods=['GET'])
+            def exfil():
+                self.logger.info("Incoming GET request to /exfil")
+                b64_data = request.args.get('q')
+                filename = request.args.get('filename')
+                if b64_data:
+
+                    if not filename:
+                        # if behind a proxy ip_address.remote_addr will return proxy ip
+                        # need to get X-Forwarded-For header and parse for remote pi address
+                        ip_address = request.remote_addr
+                        ts_str = datetime.now(timezone.utc).isoformat()
+                        filename = f"{ip_address}_{ts_str}"
+
+                    save_path = self._decode_and_save(b64_data, filename)
+                else:
+                    self.logger.warning('Data missing from query parameter q or did not use the correct query parameter')
+                    abort(410)
+
 
         if self.direction in ['upload', 'both']:
             @self.app.route(self.route, methods=['POST'])
