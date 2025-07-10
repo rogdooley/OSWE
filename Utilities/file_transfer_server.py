@@ -3,9 +3,10 @@ import string
 import logging
 import threading
 import time
-import base64
 import typing
+import base64
 import json
+
 
 from pathlib import Path
 from flask import Flask, request, send_file, abort, render_template_string
@@ -214,7 +215,7 @@ class FileTransferServer:
                 return {"status" : 'uploaded', 'path': str(save_path)}, 200
 
 
-    def _configure_html_page(self):
+    def _configure_html_page(self) -> None:
         if not self.html_page_route.startswith("/"):
             route = "/" + self.html_page_route
         else:
