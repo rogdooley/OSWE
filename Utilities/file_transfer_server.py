@@ -72,7 +72,7 @@ class FileTransferServer:
     def __init__(self, file_path, save_dir, direction='download', limit=1, encoded=False,
                 route=None, port=8888, log_to_console=True, log_to_file=False,
                 log_file_path='transfer.log', log_level='INFO', enable_html_page=False,
-                html_page_route='/transfer'):
+                html_page_route='/transfer', on_transfer: typing.Callable[[Path, int], None] | None = None):
         self.file_path = file_path
         self.save_dir = save_dir
         self.direction = direction
