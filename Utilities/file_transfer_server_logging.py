@@ -12,6 +12,54 @@ from datetime import datetime, timezone
 
 from offsec_logger import OffsecLogger
 
+"""
+file_transfer_server.py
+
+Author: Roger Dooley
+Created for: Offensive Security OSWE (WEB-300) coursework and PoC development
+
+This module defines the `FileTransferServer` class, a flexible Flask-based HTTP server 
+used for file uploads, downloads, and base64-encoded data exchange during offensive operations. 
+This version integrates the `OffsecLogger` utility for colorized console output, structured 
+status indicators, and optional dual logging to disk.
+
+Key Features:
+- Handles GET/POST requests for raw or base64-encoded data
+- Enforces configurable one-time or limited-use transfers
+- Gracefully shuts down after completing transfers or on local request
+- Provides optional HTML landing page for download links
+- Dynamically generates random routes for PoC delivery stealth
+- Supports custom callbacks (e.g., to trigger next stage of exploit)
+- Uses OffsecLogger for structured output: [+], [*], [!], etc.
+- Logs to both file and stdout with stage timing support
+
+Example:
+    from file_transfer_server import FileTransferServer
+
+    fts = FileTransferServer(
+        file_path="loot.bin",
+        save_dir=Path("/tmp"),
+        direction="upload",
+        limit=1,
+        encoded=True,
+        log_to_console=True,
+        log_to_file=True,
+        log_file_path="upload.log",
+        html_page_route='/drop',
+        on_transfer=lambda p, c: print(f"Received {p}")
+    )
+    fts.start()
+
+Use Cases:
+- Exploit file hosting or exfiltration drop points
+- Offline file transfers during blind SSRF or LFI chains
+- Temporary file staging within red team infrastructure
+- Automated testing in OSWE/WEB-300-style PoC chains
+
+Note:
+Not designed for long-term hosting. For offensive testing use only.
+"""
+
 html_template = """
 <html>
 <head><title>File Transfer Page</title></head>

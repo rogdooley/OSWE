@@ -9,7 +9,9 @@ class OffsecLogger:
     """
     OffsecLogger
 
-    ```
+    Author: Roger Dooley
+    Created for: Offensive Security OSWE (WEB-300) coursework and PoC development
+
     Custom logging utility for OSWE PoC scripting.
     Provides colorized console output with exploit-centric symbols and optional file logging.
 
@@ -108,4 +110,4 @@ def end_timer(self, label: str):
         del self.timers[label]
         return elapsed
     return None
-```
+
