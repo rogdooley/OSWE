@@ -96,6 +96,8 @@ class FileTransferServer:
         if self.enable_html_page:
             self._configure_html_page()
 
+        self.on_transfer = on_transfer
+
 
     def _generate_route(self, length=8) -> str:
         return '/' + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
@@ -155,6 +157,12 @@ class FileTransferServer:
 
                 self.transfer_count += 1
                 self.logger.info("Transferred %s (count: %d/%d)", self.file_path, self.transfer_count, self.limit)
+
+                if self.on_transfer:                           
+                    try:
+                        self.on_transfer(Path(self.file_path), self.transfer_count)
+                    except Exception as e:
+                        self.logger.warning("on_transfer callback raised: %s", e)
                 return send_file(self.file_path, as_attachment=True)
 
             @self.app.route('/exfil', methods=['GET'])
@@ -212,6 +220,13 @@ class FileTransferServer:
 
                 self.transfer_count += 1
                 self.logger.info("Saved upload %s (count: %d/%d)", save_path, self.transfer_count, self.limit)
+
+                if self.on_transfer:                           
+                    try:
+                        self.on_transfer(Path(self.file_path), self.transfer_count)
+                    except Exception as e:
+                        self.logger.warning("on_transfer callback raised: %s", e)
+
                 return {"status" : 'uploaded', 'path': str(save_path)}, 200
 
 
