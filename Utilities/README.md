@@ -159,6 +159,83 @@ Scripts are intentionally kept lightweight, modular, and self-contained to suppo
 
 ---
 
+## `offsec_logger.py`
+
+A lightweight, colorized logger tailored for Offensive Security WEB-300 workflows and exploit scripts.
+
+Features:
+	•	Logging indicators: [+], [!], [*], [?], [-], [~], [>]
+	•	Colorized terminal output (Linux/macOS compatible)
+	•	Optional log file output (e.g. exploit.log) without ANSI color codes
+	•	Debug mode with full timestamps
+	•	Automatic stage/step timers for tracking elapsed time
+	•	.custom() method for advanced formatting or custom indicators
+
+Indicator Summary:
+
+Symbol	Meaning
+[+]	Success / Positive result
+[!]	Error / Critical issue
+[*]	General info / Action log
+[?]	User input / Prompt
+[-]	Negation / Skipped / Removed
+[~]	Passive state / Waiting
+[>]	Instruction / Step in progress
+
+
+⸻
+
+Usage Example
+
+from offsec_logger import OffsecLogger
+import time
+
+log = OffsecLogger(log_file="exploit.log", debug=True)
+
+log.info("Launching exploit")
+log.stage("User enumeration")
+time.sleep(1.5)
+log.success("Found valid user: alice")
+
+log.stage("Magic link brute force")
+time.sleep(2.2)
+log.error("Token window too small")
+
+log.custom("[~]", "Retrying with wider time window")
+log.success("Token accepted")
+
+Example Output (stdout)
+
+[12:41:03] [*] Launching exploit
+[12:41:03] [>] Starting: User enumeration
+[12:41:04] [+] Found valid user: alice (1.50s)
+[12:41:04] [>] Starting: Magic link brute force
+[12:41:06] [!] Token window too small (2.20s)
+[12:41:06] [~] Retrying with wider time window
+[12:41:06] [+] Token accepted
+
+API Overview
+
+log = OffsecLogger(
+    log_file="exploit.log",   # Optional path to write clean log output
+    debug=True                # If True, adds timestamps and durations
+)
+
+log.info(msg)       # [*] Information
+log.success(msg)    # [+] Success
+log.error(msg)      # [!] Error
+log.warn(msg)       # [-] Warning or skipped
+log.prompt(msg)     # [?] Prompt or question
+log.waiting(msg)    # [~] Passive state or sleep
+log.action(msg)     # [>] Ongoing action
+log.stage(name)     # Tracks duration of a named stage (calls action internally)
+log.custom(sym, msg)# Custom symbol and message
+
+
+⸻
+
+
+
 ## License
 
 This project is intended for lawful security testing, research, and education only.
