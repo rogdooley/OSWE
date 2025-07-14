@@ -41,7 +41,8 @@ Usage:
         limit=1,
         encoded=True,
         enable_html_page=True,
-        html_page_route='/transfer'
+        html_page_route='/transfer',
+        on_transfer=lambda p, c: print(f"Received {p}")
     )
     fts.start()
 

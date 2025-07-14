@@ -29,7 +29,10 @@ A robust, configurable file upload/download server designed for delivering or re
 ```python
 import threading
 from pathlib import Path
-from file_transfer_server import FileTransferServer
+from pprint import pprint
+from typing import List, Dict, Optional
+from file_transfer_server import FileTransferServer  # Make sure this is available
+import time
 
 def run_transfer_and_wait(
     file_path: str,
@@ -65,7 +68,79 @@ def run_transfer_and_wait(
     print("[+] File transfer handled. Continuing...")
 
     return fts
+
+def run_transfer_and_wait_multi(
+    file_path: str,
+    direction: str = "download",
+    port: int = 8000,
+    encoded: bool = False,
+    limit: int = 1,
+    enable_html: bool = False,
+    html_page_route: str = "/transfer",
+    timeout: Optional[int] = 30
+) -> List[Dict[str, str]]:
+    transfer_meta = []
+    lock = threading.Lock()
+    sem = threading.Semaphore(0)
+
+    def on_transfer(file_path: Path, transfer_count: int):
+        from flask import request
+        with lock:
+            transfer_meta.append({
+                "path": str(file_path),
+                "ip": request.remote_addr,
+                "user_agent": request.headers.get("User-Agent", "")
+            })
+        sem.release()
+
+    fts = FileTransferServer(
+        file_path=file_path,
+        save_dir=Path("."),
+        direction=direction,
+        limit=limit,
+        encoded=encoded,
+        port=port,
+        enable_html_page=enable_html,
+        html_page_route=html_page_route,
+        on_transfer=on_transfer
+    )
+
+    fts.start()
+    print(f"[*] Waiting for {limit} transfer(s) on port {port}...")
+
+    start = time.time()
+    for i in range(limit):
+        remaining = None if timeout is None else max(0, timeout - (time.time() - start))
+        acquired = sem.acquire(timeout=remaining)
+        if not acquired:
+            raise TimeoutError(f"[!] Transfer {i+1}/{limit} did not complete in time")
+
+    print(f"[+] All {limit} transfers completed.")
+    return transfer_meta
+
+def main():
+    try:
+        metadata = run_transfer_and_wait_multi(
+            file_path="loot.zip",
+            direction="upload",
+            port=9000,
+            encoded=True,
+            limit=3,  # Wait for 3 uploads
+            timeout=60
+        )
+    except TimeoutError as e:
+        print(e)
+        return
+
+    print("[*] All transfers complete. Collected metadata:")
+    pprint(metadata)
+
+if __name__ == "__main__":
+    main()
+    
 ```
+
+
 
 ---
 
