@@ -27,22 +27,44 @@ A robust, configurable file upload/download server designed for delivering or re
 
 ### Usage Example (Python API):
 ```python
+import threading
+from pathlib import Path
 from file_transfer_server import FileTransferServer
 
-fts = FileTransferServer(
-    file_path="loot.zip",
-    save_dir="/tmp",
-    direction="upload",
-    limit=1,
-    encoded=True,
-    log_to_console=True,
-    log_to_file=True,
-    log_file_path="fts.log",
-    enable_html_page=True,
-    html_page_route='/transfer',
-    on_transfer=lambda _path, _cnt: payload_served.set()
-)
-fts.start()
+def run_transfer_and_wait(
+    file_path: str,
+    direction: str = "download",
+    port: int = 8000,
+    encoded: bool = False,
+    limit: int = 1,
+    enable_html: bool = False,
+    html_page_route: str = "/transfer"
+):
+    payload_served = threading.Event()
+
+    def on_transfer_callback(_path: Path, _count: int):
+        print(f"[+] Transfer complete: {_path}")
+        payload_served.set()
+
+    fts = FileTransferServer(
+        file_path=file_path,
+        save_dir=Path("."),
+        direction=direction,
+        limit=limit,
+        encoded=encoded,
+        port=port,
+        enable_html_page=enable_html,
+        html_page_route=html_page_route,
+        on_transfer=on_transfer_callback
+    )
+
+    fts.start()
+
+    print("[*] Waiting for file transfer to complete...")
+    payload_served.wait()
+    print("[+] File transfer handled. Continuing...")
+
+    return fts
 ```
 
 ---
