@@ -39,7 +39,8 @@ fts = FileTransferServer(
     log_to_file=True,
     log_file_path="fts.log",
     enable_html_page=True,
-    html_page_route='/transfer'
+    html_page_route='/transfer',
+    on_transfer=lambda _path, _cnt: payload_served.set()
 )
 fts.start()
 ```
