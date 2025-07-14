@@ -25,6 +25,22 @@ A robust, configurable file upload/download server designed for delivering or re
 - Dynamic route generation
 - Graceful shutdown support
 
+### Usage Example Snippet (simple):
+```python
+from pathlib import Path
+import threading
+from file_transfer_server import FileTransferServer
+
+payload_served = threading.Event()
+
+# Start the server
+fts = FileTransferServer(..., on_transfer=lambda _path, _cnt: payload_served.set())
+fts.start()
+
+# Wait until file has been transferred
+payload_served.wait()
+```
+
 ### Usage Example (multi-file download):
 ```python
 from pprint import pprint
