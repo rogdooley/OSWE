@@ -16,5 +16,6 @@ This repository contains lab code, scripts, and proofs-of-concept developed whil
 - `SQLi/` – SQL injection examples and exploitation scripts.
 - `Scanners/` – Custom or configured scanners used during assessments.
 - `TemplatesAndSnippets/` – Reusable code templates and snippets for various tasks.
+- `Utlities` - Utilities used to support exploit scripts (Python) developed during the course
 
 ---
