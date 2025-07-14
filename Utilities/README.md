@@ -25,49 +25,12 @@ A robust, configurable file upload/download server designed for delivering or re
 - Dynamic route generation
 - Graceful shutdown support
 
-### Usage Example (Python API):
+### Usage Example (multi-file download):
 ```python
-import threading
-from pathlib import Path
 from pprint import pprint
-from typing import List, Dict, Optional
-from file_transfer_server import FileTransferServer  # Make sure this is available
-import time
-
-def run_transfer_and_wait(
-    file_path: str,
-    direction: str = "download",
-    port: int = 8000,
-    encoded: bool = False,
-    limit: int = 1,
-    enable_html: bool = False,
-    html_page_route: str = "/transfer"
-):
-    payload_served = threading.Event()
-
-    def on_transfer_callback(_path: Path, _count: int):
-        print(f"[+] Transfer complete: {_path}")
-        payload_served.set()
-
-    fts = FileTransferServer(
-        file_path=file_path,
-        save_dir=Path("."),
-        direction=direction,
-        limit=limit,
-        encoded=encoded,
-        port=port,
-        enable_html_page=enable_html,
-        html_page_route=html_page_route,
-        on_transfer=on_transfer_callback
-    )
-
-    fts.start()
-
-    print("[*] Waiting for file transfer to complete...")
-    payload_served.wait()
-    print("[+] File transfer handled. Continuing...")
-
-    return fts
+from pathlib import Path
+import threading
+from file_transfer_server import FileTransferServer
 
 def run_transfer_and_wait_multi(
     file_path: str,
@@ -77,8 +40,8 @@ def run_transfer_and_wait_multi(
     limit: int = 1,
     enable_html: bool = False,
     html_page_route: str = "/transfer",
-    timeout: Optional[int] = 30
-) -> List[Dict[str, str]]:
+    timeout: int = 30
+):
     transfer_meta = []
     lock = threading.Lock()
     sem = threading.Semaphore(0)
@@ -106,16 +69,13 @@ def run_transfer_and_wait_multi(
     )
 
     fts.start()
-    print(f"[*] Waiting for {limit} transfer(s) on port {port}...")
 
-    start = time.time()
+    print(f"[*] Waiting for {limit} transfer(s) on port {port}...")
     for i in range(limit):
-        remaining = None if timeout is None else max(0, timeout - (time.time() - start))
-        acquired = sem.acquire(timeout=remaining)
-        if not acquired:
+        if not sem.acquire(timeout=timeout):
             raise TimeoutError(f"[!] Transfer {i+1}/{limit} did not complete in time")
 
-    print(f"[+] All {limit} transfers completed.")
+    print("[+] All transfers complete.")
     return transfer_meta
 
 def main():
@@ -125,19 +85,19 @@ def main():
             direction="upload",
             port=9000,
             encoded=True,
-            limit=3,  # Wait for 3 uploads
+            limit=3,
             timeout=60
         )
     except TimeoutError as e:
         print(e)
         return
 
-    print("[*] All transfers complete. Collected metadata:")
+    print("[*] Metadata collected:")
     pprint(metadata)
 
 if __name__ == "__main__":
     main()
-    
+
 ```
 
 
