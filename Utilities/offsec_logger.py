@@ -53,61 +53,61 @@ SYMBOLS = {
     "DEBUG": "[DEBUG]"
 }
 
-def __init__(self, logfile: Optional[str] = None, debug: bool = False):
-    self.logfile = Path(logfile).resolve() if logfile else None
-    self.debug_mode = debug
-    self.timers = {}
+    def __init__(self, logfile: Optional[str] = None, debug: bool = False):
+        self.logfile = Path(logfile).resolve() if logfile else None
+        self.debug_mode = debug
+        self.timers = {}
 
-    if self.logfile:
-        self.logfile.parent.mkdir(parents=True, exist_ok=True)
-        with self.logfile.open("w") as f:
-            f.write("")  # clear existing
+        if self.logfile:
+            self.logfile.parent.mkdir(parents=True, exist_ok=True)
+            with self.logfile.open("w") as f:
+                f.write("")  # clear existing
 
-def _write(self, level: str, message: str):
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    symbol = self.SYMBOLS.get(level, "[*]")
-    color = self.COLORS.get(level, "")
-    reset = self.COLOR_RESET
+    def _write(self, level: str, message: str):
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        symbol = self.SYMBOLS.get(level, "[*]")
+        color = self.COLORS.get(level, "")
+        reset = self.COLOR_RESET
 
-    out = f"{symbol} {message}"
-    colored = f"{color}{symbol} {message}{reset}"
+        out = f"{symbol} {message}"
+        colored = f"{color}{symbol} {message}{reset}"
 
-    print(colored)
+        print(colored)
 
-    if self.logfile:
-        with self.logfile.open("a") as f:
-            f.write(f"[{ts}] {out}\n")
+        if self.logfile:
+            with self.logfile.open("a") as f:
+                f.write(f"[{ts}] {out}\n")
 
-def info(self, msg: str):
-    self._write("INFO", msg)
+    def info(self, msg: str):
+        self._write("INFO", msg)
 
-def success(self, msg: str, timer: Optional[str] = None):
-    if timer and timer in self.timers:
-        elapsed = time.time() - self.timers[timer]
-        msg = f"{msg} (elapsed: {elapsed:.2f}s)"
-    self._write("SUCCESS", msg)
+    def success(self, msg: str, timer: Optional[str] = None):
+        if timer and timer in self.timers:
+            elapsed = time.time() - self.timers[timer]
+            msg = f"{msg} (elapsed: {elapsed:.2f}s)"
+        self._write("SUCCESS", msg)
 
-def warning(self, msg: str):
-    self._write("WARNING", msg)
+    def warning(self, msg: str):
+        self._write("WARNING", msg)
 
-def error(self, msg: str):
-    self._write("ERROR", msg)
+    def error(self, msg: str):
+        self._write("ERROR", msg)
 
-def critical(self, msg: str):
-    self._write("CRITICAL", msg)
+    def critical(self, msg: str):
+        self._write("CRITICAL", msg)
 
-def debug(self, msg: str):
-    if self.debug_mode:
-        ts = datetime.now().strftime("%H:%M:%S")
-        self._write("DEBUG", f"[{ts}] {msg}")
+    def debug(self, msg: str):
+        if self.debug_mode:
+            ts = datetime.now().strftime("%H:%M:%S")
+            self._write("DEBUG", f"[{ts}] {msg}")
 
-def start_timer(self, label: str):
-    self.timers[label] = time.time()
+    def start_timer(self, label: str):
+        self.timers[label] = time.time()
 
-def end_timer(self, label: str):
-    if label in self.timers:
-        elapsed = time.time() - self.timers[label]
-        del self.timers[label]
-        return elapsed
-    return None
+    def end_timer(self, label: str):
+        if label in self.timers:
+            elapsed = time.time() - self.timers[label]
+            del self.timers[label]
+            return elapsed
+        return None
 
