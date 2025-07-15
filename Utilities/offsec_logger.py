@@ -34,24 +34,24 @@ class OffsecLogger:
     Supports optional log-to-file while printing colorized stdout.
     """
 
-COLOR_RESET = "\033[0m"
-COLORS = {
-    "INFO": "\033[94m",
-    "SUCCESS": "\033[92m",
-    "WARNING": "\033[93m",
-    "ERROR": "\033[91m",
-    "CRITICAL": "\033[91;1m",
-    "DEBUG": "\033[90m"
-}
+    COLOR_RESET = "\033[0m"
+    COLORS = {
+        "INFO": "\033[94m",
+        "SUCCESS": "\033[92m",
+        "WARNING": "\033[93m",
+        "ERROR": "\033[91m",
+        "CRITICAL": "\033[91;1m",
+        "DEBUG": "\033[90m"
+    }
 
-SYMBOLS = {
-    "INFO": "[*]",
-    "SUCCESS": "[+]",
-    "WARNING": "[!]",
-    "ERROR": "[-]",
-    "CRITICAL": "[!]",
-    "DEBUG": "[DEBUG]"
-}
+    SYMBOLS = {
+        "INFO": "[*]",
+        "SUCCESS": "[+]",
+        "WARNING": "[!]",
+        "ERROR": "[-]",
+        "CRITICAL": "[!]",
+        "DEBUG": "[DEBUG]"
+    }
 
     def __init__(self, logfile: Optional[str] = None, debug: bool = False):
         self.logfile = Path(logfile).resolve() if logfile else None
