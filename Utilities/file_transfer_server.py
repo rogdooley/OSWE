@@ -186,6 +186,14 @@ class FileTransferServer:
                     abort(410)
 
 
+            @self.app.route('/collect', methods=['GET'])
+            def collect():
+                self.logger.info("Exfil GET to /collect with args: {}", request.query_string.decode())
+                path = self.save_dir / f"{request.remote_addr}_{int(time.time())}.log"
+                with open(path, "w") as f:
+                    f.write(request.query_string.decode())
+                return "", 204
+
         if self.direction in ['upload', 'both']:
             @self.app.route(self.route, methods=['POST'])
             def handle_upload():
