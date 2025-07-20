@@ -118,7 +118,8 @@ class DataFaker:
             "username": self.generate_username(username_format),
             "email": self.generate_email(domain, email_format),
             "password": self.generate_password(password_length),
-            "uuid": self.generate_uuid()
+            "uuid": self.generate_uuid(),
+            "token" : self.generate_token()
         }
 
         self.last_identity = identity
