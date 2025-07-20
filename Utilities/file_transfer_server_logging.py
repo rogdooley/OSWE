@@ -89,13 +89,7 @@ class FileTransferServer:
         self.transfer_count = 0
         self.on_transfer = on_transfer
 
-        self.logger = logger or OffsecLogger(
-            name=f"FTS:{id(self)}",
-            to_console=log_to_console,
-            to_file=log_to_file,
-            file_path=log_file_path,
-            level=log_level
-        )
+        self.logger = logger or OffsecLogger()
 
         self.app = Flask(__name__)
         self._configure_routes()

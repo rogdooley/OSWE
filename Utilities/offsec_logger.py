@@ -41,7 +41,8 @@ class OffsecLogger:
         "WARNING": "\033[93m",
         "ERROR": "\033[91m",
         "CRITICAL": "\033[91;1m",
-        "DEBUG": "\033[90m"
+        "DEBUG": "\033[90m",
+        "STATUS": "\033[95m"
     }
 
     SYMBOLS = {
@@ -50,7 +51,8 @@ class OffsecLogger:
         "WARNING": "[!]",
         "ERROR": "[-]",
         "CRITICAL": "[!]",
-        "DEBUG": "[DEBUG]"
+        "DEBUG": "[DEBUG]",
+        "STATUS": "[~]"
     }
 
     def __init__(self, logfile: Optional[str] = None, debug: bool = False):
@@ -63,43 +65,48 @@ class OffsecLogger:
             with self.logfile.open("w") as f:
                 f.write("")  # clear existing
 
-    def _write(self, level: str, message: str):
+    def _write(self, level: str, message: str, *args):
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         symbol = self.SYMBOLS.get(level, "[*]")
         color = self.COLORS.get(level, "")
         reset = self.COLOR_RESET
 
+        if args:
+            try:
+                message = message.format(*args)
+            except Exception as e:
+                message = f"{message} [format error: {e}]"
+
         out = f"{symbol} {message}"
         colored = f"{color}{symbol} {message}{reset}"
 
         print(colored)
-
         if self.logfile:
             with self.logfile.open("a") as f:
                 f.write(f"[{ts}] {out}\n")
 
-    def info(self, msg: str):
-        self._write("INFO", msg)
+    def info(self, msg: str, *args):
+        self._write("INFO", msg, *args)
 
-    def success(self, msg: str, timer: Optional[str] = None):
+    def success(self, msg: str, *args, timer: Optional[str] = None):
         if timer and timer in self.timers:
             elapsed = time.time() - self.timers[timer]
             msg = f"{msg} (elapsed: {elapsed:.2f}s)"
-        self._write("SUCCESS", msg)
+        self._write("SUCCESS", msg, *args)
 
-    def warning(self, msg: str):
-        self._write("WARNING", msg)
+    def warning(self, msg: str, *args):
+        self._write("WARNING", msg, *args)
 
-    def error(self, msg: str):
-        self._write("ERROR", msg)
+    def error(self, msg: str, *args):
+        self._write("ERROR", msg, *args)
 
-    def critical(self, msg: str):
-        self._write("CRITICAL", msg)
+    def critical(self, msg: str, *args):
+        self._write("CRITICAL", msg, args)
 
-    def debug(self, msg: str):
+    def debug(self, msg: str, *args):
         if self.debug_mode:
             ts = datetime.now().strftime("%H:%M:%S")
-            self._write("DEBUG", f"[{ts}] {msg}")
+            self._write("DEBUG", f"[{ts}] {msg}", *args)
 
     def start_timer(self, label: str):
         self.timers[label] = time.time()
@@ -111,3 +118,5 @@ class OffsecLogger:
             return elapsed
         return None
 
+    def status(self, msg: str, *args):
+        self._write("INFO", msg, *args)
