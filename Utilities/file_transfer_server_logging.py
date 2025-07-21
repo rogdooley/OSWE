@@ -10,7 +10,7 @@ from flask import Flask, request, send_file, abort, render_template_string
 from werkzeug.serving import make_server
 from datetime import datetime, timezone
 
-from offsec_logger import OffsecLogger
+from .offsec_logger import OffsecLogger
 
 """
 file_transfer_server.py
@@ -155,6 +155,8 @@ class FileTransferServer:
                 path = self.save_dir / f"{request.remote_addr}_{int(time.time())}.log"
                 with open(path, "w") as f:
                     f.write(request.query_string.decode())
+
+                self.record_transfer(path)
                 return "", 204
 
         if self.direction in ['upload', 'both']:
@@ -242,4 +244,15 @@ class FileTransferServer:
             self.server_thread.shutdown()
 
     def __repr__(self):
-        return f"<FTS route={self.route} port={self.port} direction={self.direction}>"
+        return f"<FTS route={self.route} port={self.port} direction={self.direction}>" 
+
+
+    def record_transfer(self, path: Path):
+        self.transfer_count += 1
+        self.logger.success("Recorded transfer ({} / {})", self.transfer_count, self.limit)
+
+        if self.on_transfer:
+            try:
+                self.on_transfer(path, self.transfer_count)
+            except Exception as e:
+                self.logger.warn("on_transfer raised exception: {}", str(e))
