@@ -1,7 +1,6 @@
 import random
 import string
 import uuid
-import secrets
 import json
 
 from typing import Optional
@@ -183,6 +182,11 @@ class DataFaker:
         username_format: str = "firstlast##",
         email_format: str = "firstlast##",
         password_length: int = 12,
+        num_upper: Optional[int] = None,
+        num_digits: Optional[int] = None,
+        num_special: Optional[int] = None,
+        include_uuid: bool = True,
+        include_token: bool = True,
     ) -> dict:
         self._generate_name()
 
@@ -191,12 +195,22 @@ class DataFaker:
             "last_name": self.last_last_name,
             "username": self.generate_username(username_format),
             "email": self.generate_email(domain, email_format),
-            "password": self.generate_password(password_length),
-            "uuid": self.generate_uuid(),
-            "token": self.generate_token(),
+            "password": self.generate_password(
+                length=password_length,
+                num_upper=num_upper,
+                num_digits=num_digits,
+                num_special=num_special,
+            ),
         }
 
+        if include_uuid:
+            identity["uuid"] = self.generate_uuid()
+
+        if include_token:
+            identity["token"] = self.generate_token()
+
         self.last_identity = identity
+
         return identity
 
     def save_identity(self, filepath: str) -> None:
