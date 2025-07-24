@@ -4,6 +4,7 @@ import uuid
 import json
 
 from typing import Optional
+from datetime import datetime, timezone
 
 
 class DataFaker:
@@ -149,20 +150,36 @@ class DataFaker:
         num_digits: Optional[int] = None,
         num_special: Optional[int] = None,
         special_chars: str = "!@#$%^&*()-_=+[]{}",
+        complexity: Optional[str] = None,
     ) -> str:
-        # Fallback mode: fully random
+        # If no complexity is given and no explicit values, fallback
+        if complexity and any([num_upper, num_digits, num_special]):
+            raise ValueError(
+                "Provide either 'complexity' OR individual values, not both."
+            )
+
+        if complexity:
+            if complexity == "low":
+                num_upper, num_digits, num_special = 1, 1, 0
+            elif complexity == "medium":
+                num_upper, num_digits, num_special = 2, 2, 1
+            elif complexity == "high":
+                num_upper, num_digits, num_special = 3, 3, 2
+            else:
+                raise ValueError(f"Unknown complexity level: {complexity}")
+
+        # Default fallback
         if num_upper is None and num_digits is None and num_special is None:
             pool = string.ascii_letters + string.digits + string.punctuation
             return "".join(self.rng.choices(list(pool), k=length))
 
+        # Normalize unset values
         num_upper = num_upper or 0
         num_digits = num_digits or 0
         num_special = num_special or 0
 
         if num_upper + num_digits + num_special > length:
-            raise ValueError(
-                "Sum of character requirements exceeds total password length."
-            )
+            raise ValueError("Sum of complexity constraints exceeds total length.")
 
         chars: list[str] = []
         chars += [self.rng.choice(string.ascii_uppercase) for _ in range(num_upper)]
@@ -203,6 +220,7 @@ class DataFaker:
         num_upper: Optional[int] = None,
         num_digits: Optional[int] = None,
         num_special: Optional[int] = None,
+        password_complexity: Optional[str] = None,
         include_uuid: bool = True,
         include_token: bool = True,
     ) -> dict:
@@ -218,8 +236,11 @@ class DataFaker:
                 num_upper=num_upper,
                 num_digits=num_digits,
                 num_special=num_special,
+                complexity=password_complexity,
             ),
         }
+
+        identity["created_at"] = datetime.now(timezone.utc).isoformat()
 
         if include_uuid:
             identity["uuid"] = self.generate_uuid()
