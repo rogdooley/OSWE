@@ -31,6 +31,24 @@ class DataFaker:
         'XZ89Aj1sdLE0'
         >>> faker.generate_uuid()
         '550e8400-e29b-41d4-a716-446655440000'
+
+    Sample Usage:
+        faker = DataFaker()
+        identity = faker.generate_identity(
+            domain="test.io",
+            username_format="f.lastname",
+            email_format="first.last##",
+            password_length=16,
+            num_upper=2,
+            num_digits=2,
+            num_special=1,
+            include_uuid=False,
+            include_token=False
+        )
+
+        faker.save_identity("exploit_user.json")
+        loaded = faker.load_identity("exploit_user.json")
+        print(loaded)
     """
 
     def __init__(self, seed: Optional[int] = None):
@@ -218,3 +236,11 @@ class DataFaker:
             raise ValueError("No identity generated yet.")
         with open(filepath, "w") as f:
             json.dump(self.last_identity, f, indent=2)
+
+    def load_identity(self, filepath: str) -> dict:
+        with open(filepath, "r") as f:
+            self.last_identity = json.load(f)
+
+        self.last_first_name = self.last_identity["first_name"]
+        self.last_last_name = self.last_identity["last_name"]
+        return self.last_identity
