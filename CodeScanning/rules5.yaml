@@ -1,0 +1,192 @@
+java:
+  extensions:
+    - .java
+  rules:
+    - category: code-execution
+      description: Command execution via Runtime.exec
+      pattern: \bRuntime\.getRuntime\(\)\.exec\s*\(
+      severity: high
+
+    - category: code-execution
+      description: Command execution via ProcessBuilder
+      pattern: \bnew\s+ProcessBuilder\s*\(
+      severity: high
+
+    - category: deserialization
+      description: Unsafe deserialization with ObjectInputStream
+      pattern: \bObjectInputStream\s+\w+\s*=\s*new\s+ObjectInputStream\s*\(
+      severity: high
+
+    - category: deserialization
+      description: Insecure XML deserialization with XMLDecoder
+      pattern: \bXMLDecoder\s+\w+\s*=\s*new\s+XMLDecoder\s*\(
+      severity: high
+
+    - category: deserialization
+      description: Insecure XML deserialization with XStream
+      pattern: \bXStream\s+\w+\s*=.*?\.fromXML\s*\(
+      severity: high
+
+    - category: code-execution
+      description: Code execution via ScriptEngine.eval
+      pattern: \bScriptEngine\s+\w+\s*=.*?eval\s*\(
+      severity: high
+
+    - category: sql-injection
+      description: Statement execute method — check query source
+      pattern: \bStatement\b.*?\.execute(?:Query|Update)\s*\(
+      severity: high
+
+    - category: sql-injection
+      description: PreparedStatement with string concatenation
+      pattern: \bPreparedStatement\b.*\.set\w+\s*\(.*?\+.*?\)
+      severity: high
+
+    - category: code-execution
+      description: Dynamic class loading (verify usage)
+      pattern: \bClass\.forName\s*\(
+      severity: medium
+
+    - category: crypto
+      description: Insecure cipher mode (ECB)
+      pattern: \bCipher\.getInstance\s*\(\s*\"[^\"]*ECB[^\"]*\"\s*\)
+      severity: high
+
+    - category: crypto
+      description: Weak hash function (MD5)
+      pattern: \bMessageDigest\.getInstance\s*\(\s*\"MD5\"\s*\)
+      severity: high
+
+    - category: crypto
+      description: Weak hash function (SHA1)
+      pattern: \bMessageDigest\.getInstance\s*\(\s*\"SHA1\"\s*\)
+      severity: high
+
+    - category: file-io
+      description: File read access (review taint source)
+      pattern: \bnew\s+FileInputStream\s*\(
+      severity: medium
+
+    - category: file-io
+      description: File write access (review taint source)
+      pattern: \bnew\s+FileOutputStream\s*\(
+      severity: medium
+
+    - category: credential-management
+      description: Hardcoded password literal
+      pattern: \bpassword\s*=\s*\"[^\"]+\"
+      severity: critical
+
+    - category: input-validation
+      description: Unvalidated input source (request.getParameter)
+      pattern: \brequest\.getParameter\s*\(
+      severity: medium
+
+    - category: xss
+      description: Potential XSS via unsanitized output
+      pattern: \bresponse\.getWriter\s*\(\)\.write\s*\(.*request\.getParameter\s*\(
+      severity: high
+
+    - category: sql-injection
+      description: Raw SQL keyword usage — verify context
+      pattern: \b(SELECT|UPDATE|DELETE|INSERT|CREATE|ALTER|DROP)\b
+      severity: medium
+
+    - category: sql-injection
+      description: SQL with VALUES or WHERE and quoted string
+      pattern: \b(WHERE|VALUES)\b\s*.*?['"]
+      severity: high
+
+    - category: sql-injection
+      description: SQL string concatenation with quote
+      pattern: \b(WHERE|VALUES)\b.*?\"\s*\+
+      severity: high
+
+python:
+  extensions:
+    - .py
+  rules:
+    - category: code-execution
+      description: Arbitrary code execution (eval)
+      pattern: \beval\s*\(
+      severity: critical
+
+    - category: code-execution
+      description: Arbitrary code execution (exec)
+      pattern: \bexec\s*\(
+      severity: critical
+
+    - category: deserialization
+      description: Unsafe deserialization with pickle
+      pattern: \bpickle\.load(s)?\s*\(
+      severity: high
+
+    - category: deserialization
+      description: Unsafe deserialization with marshal
+      pattern: \bmarshal\.load(s)?\s*\(
+      severity: high
+
+    - category: code-execution
+      description: Command execution via subprocess
+      pattern: \bsubprocess\.(Popen|call|run|check_output)\s*\(
+      severity: high
+
+    - category: input-validation
+      description: Unsanitized input from user
+      pattern: \binput\s*\(
+      severity: medium
+
+    - category: sql-injection
+      description: sqlite3 connection
+      pattern: \bsqlite3\.connect\s*\(
+      severity: medium
+
+    - category: sql-injection
+      description: Dynamic SQL with concatenation
+      pattern: \bcursor\.execute\s*\(.*?\+.*?\)
+      severity: high
+
+    - category: credential-management
+      description: Hardcoded password string
+      pattern: \bpassword\s*=\s*[\"'].*?[\"']
+      severity: critical
+
+    - category: crypto
+      description: Weak hash function (MD5)
+      pattern: \bhashlib\.md5\s*\(
+      severity: high
+
+    - category: crypto
+      description: Weak hash function (SHA1)
+      pattern: \bhashlib\.sha1\s*\(
+      severity: high
+
+    - category: xss
+      description: Unsanitized GET param in render
+      pattern: \brender\s*\(.*request\.GET\[
+      severity: high
+
+    - category: sql-injection
+      description: Raw SQL keywords
+      pattern: \b(SELECT|UPDATE|DELETE|INSERT|CREATE|ALTER|DROP)\b
+      severity: medium
+
+    - category: sql-injection
+      description: SQL in execute with WHERE or VALUES
+      pattern: execute\s*\(.*[\"'].*(WHERE|VALUES).*?[\"']
+      severity: high
+
+    - category: sql-injection
+      description: SQL query via f-string
+      pattern: f?[\"'].*(SELECT|UPDATE|DELETE|INSERT).*{.*}[\"']
+      severity: high
+
+    - category: sql-injection
+      description: SQLAlchemy query string concatenation
+      pattern: session\.execute\s*\(.*?\+.*?\)
+      severity: high
+
+    - category: type-juggling
+      description: Loose equality (potential type coercion)
+      pattern: [^=]=[^=]
+      severity: medium
