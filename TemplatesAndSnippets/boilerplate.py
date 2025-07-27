@@ -7,6 +7,13 @@ from pathlib import Path
 from dataclasses import dataclass, asdict, field
 from typing import Optional
 
+root_dir = Path(__file__).resolve().parent.parent
+sys.path.append(str(root_dir))
+
+# If commomn isn't in ../../common, change root dir or change the imports as appropriate
+from common.offsec_logger import OffsecLogger
+from common.file_transfer_server import FileTransferServer
+
 
 @dataclass
 class ExploitContext:
@@ -47,14 +54,6 @@ class ExploitContext:
                 data = json.load(f)
             for key, value in data.items():
                 setattr(self, key, value)
-
-
-root_dir = Path(__file__).resolve().parent.parent
-sys.path.append(str(root_dir))
-
-# If commomn isn't in ../../common, change root dir or change the imports as appropriate
-from common.offsec_logger import OffsecLogger
-from common.file_transfer_server import FileTransferServer
 
 
 def parse_args():
