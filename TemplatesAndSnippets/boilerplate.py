@@ -93,7 +93,7 @@ def main():
         target_ip=args.target_ip,
         target_port=args.target_port,
         attacker_ip=args.listening_ip,
-        attacker_port=args.lstening_port,
+        attacker_port=args.listening_port,
         protocol="http",
         vuln_name="<INSERT>",
         poc_id="<INSERT>",
