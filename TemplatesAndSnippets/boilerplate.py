@@ -15,6 +15,8 @@ from common.offsec_logger import OffsecLogger
 from common.file_transfer_server import FileTransferServer
 from common.data_faker import DataFaker
 
+logger = OffsecLogger(logfile="exploit.log", debug=True)
+
 
 @dataclass
 class ExploitContext:
