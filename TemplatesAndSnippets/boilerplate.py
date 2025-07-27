@@ -13,6 +13,7 @@ sys.path.append(str(root_dir))
 # If commomn isn't in ../../common, change root dir or change the imports as appropriate
 from common.offsec_logger import OffsecLogger
 from common.file_transfer_server import FileTransferServer
+from common.data_faker import DataFaker
 
 
 @dataclass
@@ -61,18 +62,6 @@ def parse_args():
 
     parser.add_argument("--target-ip", type=str, required=True, help="Input file path")
     parser.add_argument("--target-port", type=int, default=80, help="Input file path")
-    parser.add_argument(
-        "--password",
-        nargs="?",
-        const=None,
-        help="Password for username. If left blank, a random password will be generated.",
-    )
-    parser.add_argument(
-        "--password-length",
-        type=int,
-        default=16,
-        help="Length of the password if generated.",
-    )
     parser.add_argument(
         "--listening-port",
         type=int,
