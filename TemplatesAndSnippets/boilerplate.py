@@ -15,6 +15,7 @@ sys.path.append(str(root_dir))
 # If commomn isn't in ../../common, change root dir or change the imports as appropriate
 from common.offsec_logger import OffsecLogger
 from common.file_transfer_server import FileTransferServer
+from common.data_faker import DataFaker
 
 
 @dataclass
