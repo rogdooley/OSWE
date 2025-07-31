@@ -95,7 +95,15 @@ def parse_args():
     parser.add_argument(
         "--listening-ip", type=str, help="IP to listen on for reverse shell"
     )
-
+    parser.add_argument(
+        "--user-file", type=str, default="user.json", help="Existing exploit user"
+    )
+    parser.add_argument(
+        "--register",
+        type=bool,
+        default=False,
+        help="Has the user already been registered.",
+    )
     return parser.parse_args()
 
 
