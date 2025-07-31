@@ -4,10 +4,13 @@ import sys
 import json
 import shutil
 import subprocess
+import time
 
+from bs4 import BeautifulSoup
 from pathlib import Path
 from dataclasses import dataclass, asdict, field
-from typing import Optional
+from typing import Optional, Literal, Callable
+from concurrent.futures import ThreadPoolExecutor
 
 root_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(root_dir))
@@ -16,6 +19,9 @@ sys.path.append(str(root_dir))
 from common.offsec_logger import OffsecLogger
 from common.file_transfer_server import FileTransferServer
 from common.data_faker import DataFaker
+
+logger = OffsecLogger(logfile="erka.log", debug=True)
+ARTIFACT_DIR = Path("artifacts")
 
 
 @dataclass
@@ -37,7 +43,13 @@ class ExploitContext:
     notes: str = ""
 
     # Runtime fields (ignored in serialization)
-    output_path: Path = field(default=Path("exploit_context.json"), repr=False)
+    output_path: Path = field(
+        default_factory=lambda: Path("exploit_context.json"), repr=False
+    )
+
+    def __post_init__(self):
+        if isinstance(self.output_path, str):
+            self.output_path = Path(self.output_path)
 
     def target_url(self) -> str:
         return f"{self.protocol}://{self.target_ip}:{self.target_port}"
@@ -47,8 +59,13 @@ class ExploitContext:
 
     def save(self) -> None:
         """Persist context to a JSON file (excluding runtime fields)."""
+        serializable_dict = {
+            k: str(v) if isinstance(v, Path) else v
+            for k, v in asdict(self).items()
+            if k != "output_path"
+        }
         with self.output_path.open("w") as f:
-            json.dump(asdict(self), f, indent=2)
+            json.dump(serializable_dict, f, indent=2)
 
     def load(self) -> None:
         """Restore fields from saved file if exists."""
@@ -56,7 +73,24 @@ class ExploitContext:
             with self.output_path.open() as f:
                 data = json.load(f)
             for key, value in data.items():
-                setattr(self, key, value)
+                if key == "output_path":
+                    setattr(self, key, Path(value))
+                else:
+                    setattr(self, key, value)
+
+
+def str2bool(v: str) -> bool:
+    return v.lower() in ("yes", "true", "1")
+
+
+def spawn_external_listener(listening_port: int):
+    cmd = f"bash -c 'nc -lvnp {listening_port}; echo Press enter to close; read'"
+    if shutil.which("gnome-terminal"):
+        subprocess.Popen(["gnome-terminal", "--", "bash", "-c", cmd])
+    elif shutil.which("x-terminal-emulator"):
+        subprocess.Popen(["x-terminal-emulator", "-e", cmd])
+    else:
+        print(f"[!] No terminal available. Run manually:\n{cmd}")
 
 
 def spawn_external_listener(listening_port: int):
@@ -96,30 +130,28 @@ def parse_args():
         "--listening-ip", type=str, help="IP to listen on for reverse shell"
     )
     parser.add_argument(
+        "--delay",
+        type=int,
+        default=3,
+        help="Response delay in seconds for timing inference",
+    )
+    parser.add_argument(
         "--user-file", type=str, default="user.json", help="Existing exploit user"
     )
     parser.add_argument(
         "--register",
-        type=bool,
+        type=str2bool,
         default=False,
         help="Has the user already been registered.",
     )
     return parser.parse_args()
 
 
-# Example request possibilties
-def get(self, path: str, **kwargs) -> requests.Response:
-    return requests.get(f"{self.target_url()}/{path.lstrip('/')}", **kwargs)
-
-
-def post(self, path: str, data=None, json=None, **kwargs) -> requests.Response:
-    return requests.post(
-        f"{self.target_url()}/{path.lstrip('/')}", data=data, json=json, **kwargs
-    )
-
-
 def main():
     args = parse_args()
+    Path(ARTIFACT_DIR).mkdir(parents=True, exist_ok=True)
+
+    proxies = {"http": "http://127.0.0.1:8080", "https": "http://127.0.0.1:8080"}
 
     ctx = ExploitContext(
         target_ip=args.target_ip,
@@ -127,12 +159,36 @@ def main():
         attacker_ip=args.listening_ip,
         attacker_port=args.listening_port,
         protocol="http",
-        vuln_name="<INSERT>",
-        poc_id="<INSERT>",
+        vuln_name="Erka",
+        poc_id="01",
     )
-    ctx.load()
 
-    # Add code here
+    if not (args.target_ip or args.target_port):
+        ctx.load()
+
+    user = DataFaker()
+
+    if args.register or not Path(args.user_file).exists():
+        logger.info("Generating user...")
+        identity = user.generate_identity(
+            domain="evil.io",
+            username_format="{f}_{last}{##}",
+            email_format="{first}.{last}{##}",
+            password_length=16,
+            num_upper=2,
+            num_digits=2,
+            num_special=1,
+            include_uuid=False,
+            include_token=False,
+        )
+        user.save_identity(args.user_file)
+        logger.success(f"User generated: {identity}")
+    else:
+        identity = user.load_identity(args.user_file)
+        user.last_identity = identity
+        logger.info(f"Loaded user from file : {identity}")
+
+    # Add code
 
     ctx.save()
 
