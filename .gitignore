@@ -10,3 +10,4 @@ env/
 *.log
 *.tmp
 .DS_Store
+TemplatesAndSnippets/datafaker/NotesAndInstructions
