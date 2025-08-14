@@ -1,0 +1,407 @@
+Good. We’ll proceed in small, concrete milestones you can follow in VS Code. You’ll write the code; I’ll give exact steps, file structure, and signatures so nothing is ambiguous.
+
+Milestone 1 — Create branch and skeleton
+	1.	Create a feature branch
+
+git checkout -b feature/identity-providers
+
+	2.	Add a package structure (you can nest under your existing package root if different):
+
+yourpkg/
+  datafaker/
+    __init__.py
+    datafaker.py               # your existing class; we’ll modify minimally
+    providers/
+      __init__.py
+      base.py                  # Provider interface
+      password_provider.py     # PasswordProvider
+      token_provider.py        # TokenProvider
+    specs/
+      __init__.py
+      identity_spec.py         # IdentitySpec + profiles
+    policies/
+      __init__.py
+      password_policy.py       # PasswordPolicy (validation/mapping)
+tests/
+  test_password_policy.py
+  test_password_provider.py
+  test_token_provider.py
+  test_datafaker_generate.py
+
+	3.	In VS Code: open the workspace at the repo root, and enable a Python 3.12+ venv.
+
+Milestone 2 — Define the minimal contracts (no behavior yet)
+
+providers/base.py
+	•	Purpose: single responsibility interface.
+	•	Add:
+
+from typing import Protocol, Mapping, Any
+import random
+
+class Provider(Protocol):
+    name: str
+    def generate(self, rng: random.Random, overrides: Mapping[str, Any]) -> Any: ...
+
+policies/password_policy.py
+	•	Purpose: hold password policy inputs and resolve to concrete counts.
+	•	Add class and methods (signatures only; you implement bodies):
+
+from typing import Literal, Optional
+
+Complexity = Literal["low", "medium", "high"]
+
+class PasswordPolicy:
+    def __init__(
+        self,
+        *,
+        length: int = 16,
+        complexity: Optional[Complexity] = "medium",
+        num_upper: Optional[int] = None,
+        num_digits: Optional[int] = None,
+        num_special: Optional[int] = None,
+        special_chars: str = "!@#$%^&*()-_=+[]{}",
+    ) -> None: ...
+
+    def validate(self) -> None: ...
+    def effective_counts(self) -> tuple[int, int, int, int, str]:
+        """
+        Returns (length, num_upper, num_digits, num_special, special_chars).
+        Rules:
+          - If complexity is set, map to minimum guarantees:
+              low -> at least length 12, 1U/1D/0S
+              medium -> at least length 16, 2U/2D/1S
+              high -> at least length 20, 3U/3D/2S
+          - If explicit counts provided, they override complexity guarantees.
+          - Enforce sum(counts) <= length.
+        """
+        ...
+
+specs/identity_spec.py
+	•	Purpose: collapse kwargs into one object + profiles.
+	•	Add:
+
+from typing import Mapping, Any, FrozenSet, Optional
+from dataclasses import dataclass, field
+from ..policies.password_policy import PasswordPolicy
+
+@dataclass(frozen=True)
+class IdentitySpec:
+    domain: Optional[str] = None
+    username_format: str = "{first}_{last}{##}"
+    email_format: str = "{first}.{last}{##}"
+    password: PasswordPolicy = field(default_factory=PasswordPolicy)
+    include_uuid: bool = True
+    include_token: bool = True
+    extras: FrozenSet[str] = frozenset()
+    overrides: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    profile_name: str = "standard"
+
+def make_minimal_spec(**kw) -> IdentitySpec: ...
+def make_standard_spec(**kw) -> IdentitySpec: ...
+def make_us_contact_spec(**kw) -> IdentitySpec:
+    # Set extras={"address","phone"} later when those providers exist
+    ...
+
+Milestone 3 — Implement PasswordProvider and TokenProvider
+
+providers/password_provider.py
+	•	Purpose: enforce the medium policy by default (min length 16; 2 upper, 2 digits, 1 special) and support overrides.
+	•	Add signatures you’ll implement:
+
+from typing import Mapping, Any
+import random
+import string
+from ..policies.password_policy import PasswordPolicy
+
+class PasswordProvider:
+    name = "password"
+
+    def __init__(self, default_policy: PasswordPolicy | None = None) -> None: ...
+
+    def generate(self, rng: random.Random, overrides: Mapping[str, Any]) -> str:
+        """
+        Algorithm outline you’ll implement:
+          1) Merge default_policy with overrides to create a PasswordPolicy instance.
+          2) policy.validate()
+          3) length, nU, nD, nS, specials = policy.effective_counts()
+          4) Build a list of required chars:
+               - nU uppercase from A-Z
+               - nD digits 0-9
+               - nS specials from specials
+             Fill the remainder with lowercase a-z.
+          5) Shuffle with rng and return as string.
+        """
+        ...
+
+providers/token_provider.py
+	•	Add signatures:
+
+from typing import Mapping, Any
+import random
+import string
+
+class TokenProvider:
+    name = "token"
+
+    def generate(self, rng: random.Random, overrides: Mapping[str, Any]) -> str:
+        """
+        Defaults:
+          length = overrides.get("length", 32)
+          charset = overrides.get("charset", string.ascii_letters + string.digits)
+        Use rng.choices(charset, k=length).
+        """
+        ...
+
+Milestone 4 — Wire into DataFaker with minimal disruption
+
+Open datafaker.py and make minimal adjustments:
+	1.	In __init__, create:
+
+self._rng = random.Random(seed)
+self._providers = {
+    "password": PasswordProvider(),  # default policy inside
+    "token": TokenProvider(),
+    # future: "address": AddressProviderUS(), "phone": PhoneProviderUS()
+}
+
+	2.	Add a private helper _generate_with_spec(spec) -> dict:
+
+	•	Use your existing name/username/email logic verbatim.
+	•	For password:
+	•	pwd = self._providers["password"].generate(self._rng, spec.overrides.get("password", {}))
+	•	For token if spec.include_token:
+	•	tok = self._providers["token"].generate(self._rng, spec.overrides.get("token", {}))
+	•	For UUID if spec.include_uuid: keep your current uuid.uuid4() call.
+	•	Ignore extras for now; you’ll fill them when you add address/phone providers.
+	•	Return the same dict shape you already return.
+
+	3.	Keep your existing generate_identity(...) signature intact.
+
+	•	Inside it, build an IdentitySpec:
+	•	Start with make_standard_spec() as default profile.
+	•	Apply incoming kwargs:
+	•	domain, username_format, email_format.
+	•	Build a PasswordPolicy from password_length, password_complexity, num_upper, num_digits, num_special.
+	•	Apply include_uuid, include_token.
+	•	Leave extras and overrides empty for now.
+	•	Call _generate_with_spec(spec) and return.
+
+This preserves all current call sites.
+
+Milestone 5 — Add tests (you write bodies; here are the cases)
+
+tests/test_password_policy.py
+	•	test_medium_defaults_map_to_minimums
+	•	test_explicit_counts_override_complexity
+	•	test_sum_counts_cannot_exceed_length
+
+tests/test_password_provider.py
+	•	Seeded RNG determinism: same seed → same password for the same policy.
+	•	Meets counts: assert number of uppercase/digits/specials.
+	•	Length respected and randomization occurs (shuffle).
+
+tests/test_token_provider.py
+	•	Deterministic with seed.
+	•	Length and charset adherence.
+
+tests/test_datafaker_generate.py
+	•	With fixed seed, generate_identity returns stable username/email/password.
+	•	Respect include_uuid=False / include_token=False.
+	•	Password default is “medium” policy (min length 16; 2U/2D/1S) unless overridden.
+
+Milestone 6 — Commit and push
+
+git add yourpkg/datafaker/providers/* yourpkg/datafaker/specs/* yourpkg/datafaker/policies/* yourpkg/datafaker/datafaker.py tests/*
+git commit -m "Introduce provider architecture with Password/Token providers and IdentitySpec scaffolding"
+git push -u origin feature/identity-providers
+
+Milestone 7 — Next steps (when needed)
+	•	Add AddressProviderUS and PhoneProviderUS; register them and enable us-contact profile by setting extras={"address","phone"}.
+	•	Add overrides consumption in DataFaker when you need per-field tuning.
+	•	Optionally expose a profile kwarg in generate_identity(...) once you’re ready to use profiles at call sites.
+
+If you want, I can walk you through Milestone 2 implementation in VS Code step by step and review function bodies as you write them.
+
+Q1: Do you want me to outline the function bodies for PasswordPolicy.validate() and effective_counts() next so you can implement them directly?
+Q2: Should UUIDs remain non-deterministic (system RNG) or be derived from the seeded RNG for full reproducibility?
+Q3: Do you want a short pytest conftest.py with a shared seeded rng fixture to simplify the tests?
+
+
+Great—let’s implement PasswordProvider step by step, with small, verifiable milestones. You’ll write each piece in VS Code, run tests (or quick REPL checks), then move to the next step.
+
+I’ll assume you already created:
+	•	policies/password_policy.py with a PasswordPolicy class (fields only is fine for now).
+	•	providers/base.py with the Provider protocol (optional).
+
+If not, create empty shells; we’ll fill behavior below.
+
+⸻
+
+Step 1 — Implement PasswordPolicy behavior
+
+File: policies/password_policy.py
+
+Goal: turn “policy inputs” into concrete counts, and validate them.
+	1.	Open the file and implement these constants and methods:
+
+	•	Complexity mapping (minimum guarantees):
+	•	low    → min length 12, at least 1U / 1D / 0S
+	•	medium → min length 16, at least 2U / 2D / 1S
+	•	high   → min length 20, at least 3U / 3D / 2S
+	•	validate():
+	•	If complexity is set and any of num_upper/num_digits/num_special is not None, validation is still OK (we’ll treat explicit counts as overrides—this keeps it practical).
+	•	All provided numbers must be >= 0.
+	•	special_chars must be non-empty if num_special > 0.
+	•	Do not check the sum vs. length here; do that in effective_counts() after resolving the final length.
+	•	effective_counts():
+	•	Start from complexity guarantees (if complexity is set); else defaults are 0/0/0 and min length is whatever length is (default 16).
+	•	Ensure final_length = max(self.length, min_length_for_complexity) if complexity is set.
+	•	Apply explicit overrides: if any of num_upper/num_digits/num_special are not None, they replace the corresponding guarantee.
+	•	Enforce num_upper + num_digits + num_special <= final_length; if not, raise ValueError.
+	•	Return (final_length, num_upper, num_digits, num_special, special_chars).
+
+Acceptance checks (quick, manual):
+	•	Medium default with no explicit counts returns (>=16, 2, 2, 1, specials).
+	•	If you set length=10, complexity="medium", the returned length must still be 16 because of the minimum.
+	•	If you set num_special=5, length=6, complexity="low", and required total exceeds length, it must raise.
+
+Tip: keep special_chars default as "!@#$%^&*()-_=+[]{}".
+
+⸻
+
+Step 2 — Create PasswordProvider skeleton
+
+File: providers/password_provider.py
+
+Add the class with the public surface only; leave bodies with TODOs so you control implementation.
+
+from __future__ import annotations
+
+import random
+import string
+from typing import Any, Mapping
+
+from ..policies.password_policy import PasswordPolicy
+
+class PasswordProvider:
+    name: str = "password"
+
+    def __init__(self, default_policy: PasswordPolicy | None = None) -> None:
+        # TODO: store a default policy (fallback to PasswordPolicy() if None)
+        ...
+
+    def generate(self, rng: random.Random, overrides: Mapping[str, Any]) -> str:
+        """
+        Contract:
+          - Use the provided rng; do not create your own randomness.
+          - Build an effective PasswordPolicy by merging (in order of precedence):
+              1) self.default_policy
+              2) overrides.get("policy")  -> full PasswordPolicy instance, if provided
+              3) field overrides in 'overrides' (length, complexity, num_upper, num_digits, num_special, special_chars)
+          - policy.validate()
+          - length, nU, nD, nS, specials = policy.effective_counts()
+          - Build the password:
+              * pick nU uppercase letters
+              * pick nD digits
+              * pick nS specials from 'specials'
+              * fill the remainder with lowercase letters
+              * shuffle with rng
+          - return the final string
+        """
+        ...
+
+Implementation notes you’ll follow in Step 3:
+	•	Merging order ensures call-site overrides win.
+	•	Use rng.choices or repeated rng.choice for sampling; both are deterministic.
+	•	Use chars: list[str] and rng.shuffle(chars) to randomize positions.
+
+⸻
+
+Step 3 — Implement PasswordProvider.__init__ and generate
+
+Implement the logic exactly as outlined. Key details to get right:
+	•	Policy merge:
+	•	Start with base = self.default_policy or PasswordPolicy() if it’s None.
+	•	If overrides.get("policy") is present, use that as the base instead.
+	•	If scalar overrides exist (e.g., length, num_upper, …), create a new PasswordPolicy using the base values but replacing fields provided in overrides. This keeps the original objects immutable.
+	•	Validation and resolution:
+	•	Call policy.validate().
+	•	Then call policy.effective_counts().
+	•	Sampling:
+	•	If nS > 0, ensure specials isn’t empty (fail fast).
+	•	Build chars = [] then extend:
+	•	Uppercase: rng.choices(string.ascii_uppercase, k=nU)
+	•	Digits: rng.choices(string.digits, k=nD)
+	•	Specials: rng.choices(specials, k=nS)
+	•	Lowercase fill: rng.choices(string.ascii_lowercase, k=length - (nU + nD + nS))
+	•	Shuffle with rng.shuffle(chars) and return "".join(chars)".
+
+Sanity check in a REPL:
+
+import random
+from yourpkg.datafaker.providers.password_provider import PasswordProvider
+from yourpkg.datafaker.policies.password_policy import PasswordPolicy
+
+rng = random.Random(1337)
+pp = PasswordProvider()
+pwd = pp.generate(rng, {"policy": PasswordPolicy(complexity="medium")})
+len(pwd)  # expect >= 16
+sum(1 for c in pwd if c.isupper()) >= 2
+sum(1 for c in pwd if c.isdigit()) >= 2
+sum(1 for c in pwd if c in "!@#$%^&*()-_=+[]{}") >= 1
+
+
+⸻
+
+Step 4 — Wire it into DataFaker._generate_with_spec
+
+Inside your DataFaker class (same file you added _generate_with_spec):
+	1.	Ensure the providers registry exists in __init__:
+
+self._providers = {
+    "password": PasswordProvider(),
+    "token": TokenProvider(),
+}
+
+	2.	In _generate_with_spec(spec), replace your direct password logic with a provider call. Important: pass the spec policy in overrides so the provider receives it.
+
+identity["password"] = self._providers["password"].generate(
+    self._rng,
+    {
+        "policy": spec.password,
+        **spec.overrides.get("password", {}),
+    },
+)
+
+This ensures the provider gets a concrete PasswordPolicy (from your wrapper) and also any per-field overrides you may add later.
+
+⸻
+
+Step 5 — Quick verification checklist
+	•	With no overrides, the provider should enforce your “medium” default (min length 16; at least 2 upper, 2 digits, 1 special).
+	•	If you call with an explicit policy that sets num_special=4, you get at least 4 specials.
+	•	Determinism: Same seed + same policy + same overrides → identical password.
+	•	If you ask for counts that exceed the length, it raises a ValueError.
+
+⸻
+
+Optional: lightweight tests you can paste later
+
+Create tests/test_password_provider.py and add cases like:
+	•	test_medium_default_meets_minimums
+	•	test_explicit_counts_override_complexity
+	•	test_deterministic_with_seed
+
+Each test should:
+	•	Seed random.Random(42), create provider, and call generate(...).
+	•	Assert length and character class counts.
+	•	For determinism, call twice with the same seed/init state and assert equality.
+
+⸻
+
+If you want, I can list exact assertions for the three tests so you can implement them right after you finish Step 3.
+
+Q1: Do you want explicit override keys supported immediately (length, num_upper, num_digits, num_special, special_chars) in generate()?
+Q2: Should we allow a “mixed-pool” mode (ignore class minima and draw from a full pool) when complexity=None and all counts are None, to mirror your old fallback?
+Q3: Do you want me to outline the precise override → PasswordPolicy merge code before you start coding Step 3?
