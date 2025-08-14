@@ -11,47 +11,52 @@ from .specs.identity_spec import IdentitySpec
 
 class IdentityGenerator:
     """
-    Utility class for generating test data for OSWE and CTF exploit development.
+    IdentityGenerator is a modular, extensible utility for generating realistic
+    test identities for use in exploit development, CTFs, and automation workflows.
 
-    Methods:
-        - generate_username(): Returns a random username.
-        - generate_email(domain): Returns a random email address.
-        - generate_password(length): Returns a random password.
-        - generate_token(length, charset): Returns a random string token.
-        - generate_uuid(): Returns a random UUID4 string.
+    Features:
+        - Supports randomized and deterministic (seeded) identity generation
+        - Extensible via pluggable data providers (username, password, address, phone, etc.)
+        - Format-string support for custom username/email patterns
+        - Fine-grained control via IdentitySpec or kwargs
+        - Save/load identities as JSON for repeatable usage
 
-    Examples:
-        >>> id = IdentityGenerator()
-        >>> id.generate_username()
-        'joeray99'
-        >>> id.generate_email()
-        'marcyhicks21@example.com'
-        >>> id.generate_email(domain="evilcorp.local")
-        'gparker47@evilcorp.local'
-        >>> id.generate_password(length=16)
-        'z!Q9fj2Xc$L71Tuv'
-        >>> id.generate_token(length=12)
-        'XZ89Aj1sdLE0'
-        >>> id.generate_uuid()
-        '550e8400-e29b-41d4-a716-446655440000'
+    Core Methods:
+        - generate_username(): Generate username from format (e.g., "{first}{last}{##}")
+        - generate_email(): Generate email with format and domain
+        - generate_password(): Generate password from complexity or explicit rules
+        - generate_token(): Generate a random token
+        - generate_uuid(): Generate a UUID4 string
+        - generate_identity(): Main entry point for full identity generation
+        - save_identity()/load_identity(): Persist generated identities to disk
+        - as_dict()/as_json(): Export last identity in structured formats
 
-    Sample Usage:
-        id = IdentityGenerator()
-        identity = id.generate_identity(
-            domain="test.io",
-            username_format="f.lastname",
-            email_format="first.last##",
-            password_length=16,
-            num_upper=2,
-            num_digits=2,
-            num_special=1,
-            include_uuid=False,
-            include_token=False
-        )
+    Usage:
+        # Direct with kwargs
+        >>> gen = IdentityGenerator()
+        >>> identity = gen.generate_identity(
+        ...     domain="corp.local",
+        ...     username_format="f.lastname",
+        ...     email_format="first.last##",
+        ...     password_complexity="high",
+        ...     include_token=True,
 
-        id.save_identity("exploit_user.json")
-        loaded = id.load_identity("exploit_user.json")
-        print(loaded)
+        ...     extras=["address", "phone"]
+        ... )
+
+        # Structured via IdentitySpec
+        >>> from .specs.identity_spec import IdentitySpec
+        >>> spec = IdentitySpec(
+        ...     domain="corp.io",
+        ...     username_format="first_last##",
+        ...     email_format="f.lastname",
+        ...     include_token=True,
+        ...     extras=["address"],
+        ...     overrides={"password": {"length": 20, "complexity": "medium"}}
+        ... )
+        >>> identity = gen.generate_identity(spec)
+        >>> print(identity)
+
     """
 
     def __init__(self, seed: Optional[int] = None):
@@ -117,13 +122,11 @@ class IdentityGenerator:
         ]
 
     def _register_default_providers(self) -> None:
-        from .providers.username_provider import UsernameProvider
-        from .providers.password_provider import PasswordProvider
-        from .providers.token_provider import TokenProvider
-        from .providers.address_provider_us import AddressProviderUS
-        from .providers.phone_provider_us import PhoneProviderUS
+        from IdentityGenerator.providers.password_provider import PasswordProvider
+        from IdentityGenerator.providers.token_provider import TokenProvider
+        from IdentityGenerator.providers.address_provider_us import AddressProviderUS
+        from IdentityGenerator.providers.phone_provider_us import PhoneProviderUS
 
-        self._providers["username"] = UsernameProvider()
         self._providers["password"] = PasswordProvider()
         self._providers["token"] = TokenProvider()
         self._providers["address"] = AddressProviderUS()
@@ -271,51 +274,58 @@ class IdentityGenerator:
             line.strip().lower() for line in open(last_names_path) if line.strip()
         ]
 
-    def generate_identity(
-        self,
-        domain: Optional[str] = None,
-        username_format: str = "{first}_{last}{##}",
-        email_format: str = "{first}.{last}{##}",
-        password_length: int = 12,
-        num_upper: Optional[int] = None,
-        num_digits: Optional[int] = None,
-        num_special: Optional[int] = None,
-        password_complexity: Optional[str] = None,
-        include_uuid: bool = True,
-        include_token: bool = True,
-        include_address: bool = False,
-        include_phone: bool = False,
-    ) -> dict:
+    def generate_name_dict(self) -> dict:
+        """Generate and return a dict with first and last name."""
         self._generate_name()
+        return {
+            "first_name": self.last_first_name,
+            "last_name": self.last_last_name,
+        }
+
+    def generate_core_identity(self, name: dict, spec: IdentitySpec) -> dict:
+        """Generate username, email, password, created_at."""
+        self.last_first_name = name["first_name"]
+        self.last_last_name = name["last_name"]
+
         identity = {
             "first_name": self.last_first_name,
             "last_name": self.last_last_name,
-            "username": self.generate_username(username_format),
-            "email": self.generate_email(domain, email_format),
-            "password": self.generate_password(
-                length=password_length,
-                num_upper=num_upper,
-                num_digits=num_digits,
-                num_special=num_special,
-                complexity=password_complexity,
+            "username": self.generate_username(spec.username_format),
+            "email": self.generate_email(spec.domain, spec.email_format),
+            "password": self._providers["password"].generate(
+                self._rng, spec.overrides.get("password", {})
             ),
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
-        if include_uuid:
-            identity["uuid"] = self.generate_uuid()
-        if include_token:
-            identity["token"] = self.generate_token()
-        if include_address:
-            addr = self._providers["address"].generate(self._rng)
-            identity["address"] = {
-                "street": addr["street"],
-                "city": addr["city"],
-                "state": addr["state"],
-                "zip_code": addr["zip_code"],
-            }
-        if include_phone:
-            identity["phone"] = self._providers["phone"].generate(self._rng)
 
+        return identity
+
+    def generate_extras(self, spec: IdentitySpec) -> dict:
+        """Generate token, address, phone, etc."""
+        extras = {}
+
+        if spec.include_token:
+            extras["token"] = self._providers["token"].generate(
+                self._rng, spec.overrides.get("token", {})
+            )
+
+        for extra in spec.extras:
+            if extra in self._providers:
+                extras[extra] = self._providers[extra].generate(
+                    self._rng, spec.overrides.get(extra, {})
+                )
+
+        return extras
+
+    def generate_identity(self, spec: Optional[IdentitySpec] = None, **kwargs) -> dict:
+        if spec is None:
+            spec = IdentitySpec(**kwargs)
+
+        name = self.generate_name_dict()
+        core = self.generate_core_identity(name, spec)
+        extras = self.generate_extras(spec)
+
+        identity = {**core, **extras}
         self.last_identity = identity
         return identity
 

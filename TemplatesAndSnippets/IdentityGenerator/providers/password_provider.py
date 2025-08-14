@@ -1,10 +1,7 @@
-from _future__ import annotations
-
 import random
 import string
 
 from typing import Mapping, Any, Literal, Optional
-from ..policies.password_policy import PasswordPolicy
 
 Complexity = Literal["low", "medium", "high"]
 
