@@ -90,18 +90,41 @@ class PasswordProvider:
 
         return (length, num_upper, num_digits, num_special, self.special_chars)
 
-    def generate(self, rng: random.Random, overrides: Mapping[str, Any]) -> str:
+    def generate(self, rng: random.Random, overrides: dict) -> str:
         """
-        Algorithm outline you’ll implement:
-          1) Merge default_policy with overrides to create a PasswordPolicy instance.
-          2) policy.validate()
-          3) length, nU, nD, nS, specials = policy.effective_counts()
-          4) Build a list of required chars:
-               - nU uppercase from A-Z
-               - nD digits 0-9
-               - nS specials from specials
-             Fill the remainder with lowercase a-z.
-          5) Shuffle with rng and return as string.
+        1) Merge default_policy with overrides to create a PasswordPolicy instance.
+        2) policy.validate()
+        3) length, nU, nD, nS, specials = policy.effective_counts()
+        4) Build a list of required chars:
+             - nU uppercase from A-Z
+             - nD digits 0-9
+             - nS specials from specials
+           Fill the remainder with lowercase a-z.
+        5) Shuffle with rng and return as string.
         """
 
-        return "password"
+        temp = PasswordProvider(
+            length=overrides.get("length", self.length),
+            complexity=overrides.get("complexity", self.complexity),
+            num_upper=overrides.get("num_upper", self.num_upper),
+            num_digits=overrides.get("num_digits", self.num_digits),
+            num_special=overrides.get("num_special", self.num_special),
+            special_chars=overrides.get("special_chars", self.special_chars),
+        )
+
+        temp.validate()
+
+        length, num_upper, num_digits, num_special, special_chars = (
+            temp.effective_counts()
+        )
+
+        chars = []
+        chars += [rng.choice(string.ascii_uppercase) for _ in range(num_upper)]
+        chars += [rng.choice(string.digits) for _ in range(num_digits)]
+        chars += [rng.choice(special_chars) for _ in range(num_special)]
+        chars += [
+            rng.choice(string.ascii_lowercase) for _ in range(length - len(chars))
+        ]
+
+        rng.shuffle(chars)
+        return "".join(chars)
