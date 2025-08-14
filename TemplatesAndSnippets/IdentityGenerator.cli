@@ -1,0 +1,50 @@
+import argparse
+from IdentityGenerator.identity_generator import IdentityGenerator
+from IdentityGenerator.specs.identity_spec import IdentitySpec
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate fake identities for testing or PoCs.")
+    parser.add_argument("--domain", help="Domain for email address")
+    parser.add_argument("--username-format", default="{first}{last}{##}", help="Username format")
+    parser.add_argument("--email-format", default="{first}.{last}{##}", help="Email format")
+    parser.add_argument("--complexity", choices=["low", "medium", "high"], help="Password complexity")
+    parser.add_argument("--include-uuid", action="store_true", help="Include UUID (not implemented)")
+    parser.add_argument("--include-token", action="store_true", help="Include random token")
+    parser.add_argument("--include-address", action="store_true", help="Include street address")
+    parser.add_argument("--include-phone", action="store_true", help="Include phone number")
+    parser.add_argument("--save-file", help="Path to save generated identity JSON")
+    parser.add_argument("--print", action="store_true", help="Print the identity to stdout")
+
+    args = parser.parse_args()
+
+    extras = []
+    if args.include_address:
+        extras.append("address")
+    if args.include_phone:
+        extras.append("phone")
+
+    overrides = {}
+    if args.complexity:
+        overrides["password"] = {"complexity": args.complexity}
+
+    spec = IdentitySpec(
+        domain=args.domain,
+        username_format=args.username_format,
+        email_format=args.email_format,
+        include_token=args.include_token,
+        extras=extras,
+        overrides=overrides,
+    )
+
+    generator = IdentityGenerator()
+    identity = generator.generate_identity(spec)
+
+    if args.save_file:
+        generator.save_identity(args.save_file)
+        print(f"[+] Identity saved to {args.save_file}")
+
+    if args.print or not args.save_file:
+        print(generator.as_json())
+
+if __name__ == "__main__":
+    main()
