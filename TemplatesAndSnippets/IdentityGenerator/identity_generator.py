@@ -54,11 +54,9 @@ class IdentityGenerator:
 
     def __init__(self, seed: Optional[int] = None):
         self._rng = random.Random(seed)
-        self._providers = {
-            "password": PasswordProvider(),
-            "token": TokenProvider(),
-            # future "address": AddressProviderUS(), "phone": PhoneProviderUS()
-        }
+        self._providers = {}
+        self._register_default_providers()
+
         self.first_names = [
             "Alice",
             "Bob",
@@ -115,6 +113,19 @@ class IdentityGenerator:
             "sandbox.io",
             "fakeinbox.xyz",
         ]
+
+    def _register_default_providers(self) -> None:
+        from .providers.username_provider import UsernameProvider
+        from .providers.password_provider import PasswordProvider
+        from .providers.token_provider import TokenProvider
+        from .providers.address_provider_us import AddressProviderUS
+        from .providers.phone_provider_us import PhoneProviderUS
+
+        self._providers["username"] = UsernameProvider()
+        self._providers["password"] = PasswordProvider()
+        self._providers["token"] = TokenProvider()
+        self._providers["address"] = AddressProviderUS()
+        self._providers["phone"] = PhoneProviderUS()
 
     def generate_username(self, format: str = "{first}{last}{##}") -> str:
         if not hasattr(self, "last_first_name") or not hasattr(self, "last_last_name"):
@@ -174,9 +185,6 @@ class IdentityGenerator:
         identity["created_at"] = datetime.now(timezone.utc).isoformat()
 
         # Optional fields
-        if spec.include_uuid:
-            identity["uuid"] = str(uuid.uuid4())
-
         if spec.include_token:
             identity["token"] = self._providers["token"].generate(
                 self._rng, spec.overrides.get("token", {})
@@ -261,21 +269,6 @@ class IdentityGenerator:
             line.strip().lower() for line in open(last_names_path) if line.strip()
         ]
 
-    def generate_address(self) -> str:
-        streets = ["Main St", "Oak Ave", "Pine Rd", "Maple Dr", "Cedar Ln"]
-        house_number = self._rng.randint(1, 9999)
-        return f"{house_number} {self._rng.choice(streets)}"
-
-    def generate_city(self) -> str:
-        cities = ["Springfield", "Riverton", "Franklin", "Madison", "Clinton"]
-        return self._rng.choice(cities)
-
-    def generate_zip(self) -> str:
-        return "".join(self._rng.choices(string.digits, k=5))
-
-    def generate_phone(self) -> str:
-        return f"{self._rng.randint(100, 999)}-{self._rng.randint(100, 999)}-{self._rng.randint(1000, 9999)}"
-
     def generate_identity(
         self,
         domain: Optional[str] = None,
@@ -290,7 +283,8 @@ class IdentityGenerator:
         include_token: bool = True,
         include_address: bool = False,
         include_city: bool = False,
-        include_zip: bool = False,
+        include_state: bool = False,
+        include_zip_code: bool = False,
         include_phone: bool = False,
     ) -> dict:
         self._generate_name()
@@ -313,13 +307,15 @@ class IdentityGenerator:
         if include_token:
             identity["token"] = self.generate_token()
         if include_address:
-            identity["address"] = self.generate_address()
-        if include_city:
-            identity["city"] = self.generate_city()
-        if include_zip:
-            identity["zip"] = self.generate_zip()
+            addr = self._providers["address"].generate(self._rng)
+            identity["address"] = {
+                "street": addr["street"],
+                "city": addr["city"],
+                "state": addr["state"],
+                "zip_code": addr["zip_code"],
+            }
         if include_phone:
-            identity["phone"] = self.generate_phone()
+            identity["phone"] = self._providers["phone"].generate(self._rng)
 
         self.last_identity = identity
         return identity

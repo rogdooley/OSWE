@@ -1,23 +1,21 @@
-from typing import Mapping, Any, FrozenSet, Optional
-from dataclasses import dataclass, field
-from ..policies.password_policy import PasswordPolicy
+from typing import Optional
 
 
-@dataclass(frozen=True)
 class IdentitySpec:
-    domain: Optional[str] = None
-    username_format: str = "{first}_{last}{##}"
-    email_format: str = "{first}.{last}{##}"
-    password: PasswordPolicy = field(default_factory=PasswordPolicy)
-    include_uuid: bool = True
-    include_token: bool = True
-    extras: FrozenSet[str] = frozenset()
-    overrides: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
-    profile_name: str = "standard"
-
-
-def make_minimal_spec(**kw) -> IdentitySpec: ...
-def make_standard_spec(**kw) -> IdentitySpec: ...
-def make_us_contact_spec(**kw) -> IdentitySpec:
-    # Set extras={"address","phone"} later when those providers exist
-    ...
+    def __init__(
+        self,
+        domain: Optional[str] = None,
+        username_format: str = "{first}_{last}{##}",
+        email_format: str = "{first}.{last}{##}",
+        include_uuid: bool = True,
+        include_token: bool = True,
+        extras: Optional[list[str]] = None,
+        overrides: Optional[dict[str, dict]] = None,
+    ):
+        self.domain = domain
+        self.username_format = username_format
+        self.email_format = email_format
+        self.include_uuid = include_uuid
+        self.include_token = include_token
+        self.extras = extras or []
+        self.overrides = overrides or {}
