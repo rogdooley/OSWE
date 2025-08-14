@@ -6,6 +6,8 @@ import json
 from typing import Optional
 from datetime import datetime, timezone
 
+from .specs.identity_spec import IdentitySpec
+
 
 class IdentityGenerator:
     """
@@ -282,9 +284,6 @@ class IdentityGenerator:
         include_uuid: bool = True,
         include_token: bool = True,
         include_address: bool = False,
-        include_city: bool = False,
-        include_state: bool = False,
-        include_zip_code: bool = False,
         include_phone: bool = False,
     ) -> dict:
         self._generate_name()
@@ -320,6 +319,9 @@ class IdentityGenerator:
         self.last_identity = identity
         return identity
 
+    def generate_from_spec(self, spec: IdentitySpec) -> dict:
+        return self._generate_with_spec(spec)
+
     def save_identity(self, filepath: str) -> None:
         if not hasattr(self, "last_identity"):
             raise ValueError("No identity generated yet.")
@@ -333,3 +335,11 @@ class IdentityGenerator:
         self.last_first_name = self.last_identity["first_name"]
         self.last_last_name = self.last_identity["last_name"]
         return self.last_identity
+
+    def as_dict(self) -> dict:
+        if not hasattr(self, "last_identity"):
+            raise ValueError("No identity generated yet.")
+        return self.last_identity
+
+    def as_json(self, indent: int = 2) -> str:
+        return json.dumps(self.as_dict(), indent=indent)
