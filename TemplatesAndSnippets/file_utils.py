@@ -1,32 +1,42 @@
 from pathlib import Path
 import tempfile
 import shutil
+import re
+
 
 def file_exists(path: str | Path) -> bool:
     return Path(path).is_file()
 
+
 def dir_exists(path: str | Path) -> bool:
     return Path(path).is_dir()
+
 
 def ensure_dir(path: str | Path):
     """Create directory if it doesn't exist"""
     Path(path).mkdir(parents=True, exist_ok=True)
 
+
 def read_text(path: str | Path) -> str:
-    return Path(path).read_text(encoding='utf-8')
+    return Path(path).read_text(encoding="utf-8")
+
 
 def write_text(path: str | Path, content: str):
-    Path(path).write_text(content, encoding='utf-8')
+    Path(path).write_text(content, encoding="utf-8")
+
 
 def read_lines(path: str | Path) -> list[str]:
-    return Path(path).read_text(encoding='utf-8').splitlines()
+    return Path(path).read_text(encoding="utf-8").splitlines()
+
 
 def write_lines(path: str | Path, lines: list[str]):
-    Path(path).write_text('\n'.join(lines), encoding='utf-8')
+    Path(path).write_text("\n".join(lines), encoding="utf-8")
+
 
 def get_files_by_ext(path: str | Path, ext: str) -> list[Path]:
     """Recursively find files by extension"""
-    return list(Path(path).rglob(f'*.{ext.lstrip(".")}'))
+    return list(Path(path).rglob(f"*.{ext.lstrip('.')}"))
+
 
 def is_safe_path(base: Path, target: Path) -> bool:
     """Prevent directory traversal — checks if target is under base"""
@@ -37,10 +47,12 @@ def is_safe_path(base: Path, target: Path) -> bool:
     except Exception:
         return False
 
-def create_temp_file(suffix: str = '', prefix: str = 'tmp') -> Path:
+
+def create_temp_file(suffix: str = "", prefix: str = "tmp") -> Path:
     """Returns a path to a new temp file"""
     fd, path = tempfile.mkstemp(suffix=suffix, prefix=prefix)
     return Path(path)
+
 
 def copy_file(src: str | Path, dst: str | Path, overwrite: bool = True):
     src = Path(src)
@@ -48,3 +60,35 @@ def copy_file(src: str | Path, dst: str | Path, overwrite: bool = True):
     if dst.exists() and not overwrite:
         raise FileExistsError(f"{dst} already exists")
     shutil.copy2(src, dst)
+
+
+def read_file_contents(path: str | Path) -> str:
+    return Path(path).read_text(encoding="utf-8")
+
+
+def read_file_lines(path: str | Path) -> list[str]:
+    return Path(path).read_text(encoding="utf-8").splitlines()
+
+
+def find_matching_lines(path: str | Path, pattern: str) -> list[str]:
+    regex = re.compile(pattern)
+    return [line for line in read_file_lines(path) if regex.search(line)]
+
+
+def extract_kv_pairs(path: str | Path, delimiter: str = "=") -> dict[str, str]:
+    pairs = {}
+    for line in read_file_lines(path):
+        if delimiter in line:
+            key, value = line.split(delimiter, 1)
+            pairs[key.strip()] = value.strip()
+    return pairs
+
+
+def extract_php_constants(path: str | Path) -> dict[str, str]:
+    pattern = re.compile(r'define\("([^"]+)",\s*"([^"]+)"\);')
+    constants = {}
+    for line in read_file_lines(path):
+        match = pattern.search(line)
+        if match:
+            constants[match.group(1)] = match.group(2)
+    return constants
