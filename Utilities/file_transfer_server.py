@@ -67,6 +67,27 @@ html_template = """
 
 
 class FileTransferServer:
+    __slots__ = (
+        "file_path",
+        "save_dir",
+        "direction",
+        "limit",
+        "encoded",
+        "route",
+        "port",
+        "log_to_console",
+        "log_to_file",
+        "log_file_path",
+        "log_level",
+        "enable_html_page",
+        "html_page_route",
+        "on_transfer",
+        "logger",
+        "flask_app",
+        "server",
+        "shutdown_event",
+    )
+
     def __init__(
         self,
         file_path,

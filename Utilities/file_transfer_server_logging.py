@@ -70,13 +70,47 @@ html_template = """
 </html>
 """
 
-class FileTransferServer:
-    def __init__(self, file_path, save_dir, direction='download', limit=1, encoded=False,
-                route=None, port=8888, log_to_console=True, log_to_file=False,
-                log_file_path='transfer.log', log_level='INFO', enable_html_page=False,
-                html_page_route='/transfer', on_transfer: typing.Callable[[Path, int], None] | None = None,
-                logger: OffsecLogger | None = None):
 
+class FileTransferServer:
+    __slots__ = (
+        "file_path",
+        "save_dir",
+        "direction",
+        "limit",
+        "encoded",
+        "route",
+        "port",
+        "log_to_console",
+        "log_to_file",
+        "log_file_path",
+        "log_level",
+        "enable_html_page",
+        "html_page_route",
+        "on_transfer",
+        "logger",
+        "flask_app",
+        "server",
+        "shutdown_event",
+    )
+
+    def __init__(
+        self,
+        file_path,
+        save_dir,
+        direction="download",
+        limit=1,
+        encoded=False,
+        route=None,
+        port=8888,
+        log_to_console=True,
+        log_to_file=False,
+        log_file_path="transfer.log",
+        log_level="INFO",
+        enable_html_page=False,
+        html_page_route="/transfer",
+        on_transfer: typing.Callable[[Path, int], None] | None = None,
+        logger: OffsecLogger | None = None,
+    ):
         self.file_path = Path(file_path)
         self.save_dir = Path(save_dir)
         self.direction = direction
@@ -97,14 +131,17 @@ class FileTransferServer:
             self._configure_html_page()
 
     def _generate_route(self, length=8) -> str:
-        return '/' + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+        return "/" + "".join(
+            random.choices(string.ascii_letters + string.digits, k=length)
+        )
 
     def _configure_routes(self):
-
-        @self.app.route('/__shutdown', methods=['POST'])
+        @self.app.route("/__shutdown", methods=["POST"])
         def shutdown():
-            if request.remote_addr != '127.0.0.1':
-                self.logger.warn("Unauthorized shutdown attempt from {}", request.remote_addr)
+            if request.remote_addr != "127.0.0.1":
+                self.logger.warn(
+                    "Unauthorized shutdown attempt from {}", request.remote_addr
+                )
                 abort(403)
 
             self.logger.warn("Manual shutdown initiated via /__shutdown")
@@ -112,8 +149,9 @@ class FileTransferServer:
             shutdown_thread.start()
             return {"status": "shutting down"}, 200
 
-        if self.direction in ['download', 'both']:
-            @self.app.route(self.route, methods=['GET'])
+        if self.direction in ["download", "both"]:
+
+            @self.app.route(self.route, methods=["GET"])
             def handle_download():
                 self.logger.info("GET request received on {}", self.route)
                 if self.transfer_count >= self.limit:
@@ -124,7 +162,12 @@ class FileTransferServer:
                     abort(404)
 
                 self.transfer_count += 1
-                self.logger.success("Delivered {} ({} / {})", self.file_path.name, self.transfer_count, self.limit)
+                self.logger.success(
+                    "Delivered {} ({} / {})",
+                    self.file_path.name,
+                    self.transfer_count,
+                    self.limit,
+                )
 
                 if self.on_transfer:
                     try:
@@ -133,11 +176,11 @@ class FileTransferServer:
                         self.logger.warn("on_transfer raised exception: {}", str(e))
                 return send_file(self.file_path, as_attachment=True)
 
-            @self.app.route('/exfil', methods=['GET'])
+            @self.app.route("/exfil", methods=["GET"])
             def exfil():
                 self.logger.info("Exfil request to /exfil")
-                b64_data = request.args.get('q')
-                filename = request.args.get('filename')
+                b64_data = request.args.get("q")
+                filename = request.args.get("filename")
                 if b64_data:
                     if not filename:
                         ip = request.remote_addr
@@ -149,9 +192,11 @@ class FileTransferServer:
                     self.logger.warn("Missing b64 data")
                     abort(410)
 
-            @self.app.route('/collect', methods=['GET'])
+            @self.app.route("/collect", methods=["GET"])
             def collect():
-                self.logger.info("Exfil GET to /collect with args: {}", request.query_string.decode())
+                self.logger.info(
+                    "Exfil GET to /collect with args: {}", request.query_string.decode()
+                )
                 path = self.save_dir / f"{request.remote_addr}_{int(time.time())}.log"
                 with open(path, "w") as f:
                     f.write(request.query_string.decode())
@@ -159,8 +204,9 @@ class FileTransferServer:
                 self.record_transfer(path)
                 return "", 204
 
-        if self.direction in ['upload', 'both']:
-            @self.app.route(self.route, methods=['POST'])
+        if self.direction in ["upload", "both"]:
+
+            @self.app.route(self.route, methods=["POST"])
             def handle_upload():
                 self.logger.info("POST upload received on {}", self.route)
                 if self.transfer_count >= self.limit:
@@ -178,7 +224,7 @@ class FileTransferServer:
                         save_path = self._decode_and_save(data, "fallback.bin")
                         self.logger.info("Received fallback upload")
                 elif request.files:
-                    file = request.files['file']
+                    file = request.files["file"]
                     save_path = self.save_dir / file.filename
                     file.save(save_path)
                 else:
@@ -186,7 +232,12 @@ class FileTransferServer:
                     abort(400)
 
                 self.transfer_count += 1
-                self.logger.success("Uploaded {} ({} / {})", save_path.name, self.transfer_count, self.limit)
+                self.logger.success(
+                    "Uploaded {} ({} / {})",
+                    save_path.name,
+                    self.transfer_count,
+                    self.limit,
+                )
 
                 if self.on_transfer:
                     try:
@@ -200,15 +251,17 @@ class FileTransferServer:
         if not route.startswith("/"):
             route = "/" + route
 
-        @self.app.route(route, methods=['GET'])
+        @self.app.route(route, methods=["GET"])
         def html_page():
             self.logger.info("HTML download page served")
-            return render_template_string(html_template, route=self.route, filename=self.file_path.name)
+            return render_template_string(
+                html_template, route=self.route, filename=self.file_path.name
+            )
 
     def _decode_and_save(self, b64: str, filename: str) -> Path:
         raw = base64.b64decode(b64.encode())
         path = self.save_dir / filename
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             f.write(raw)
         return path
 
@@ -217,7 +270,7 @@ class FileTransferServer:
 
         class ServerThread(threading.Thread):
             def __init__(inner_self):
-                inner_self.srv = make_server('0.0.0.0', self.port, self.app)
+                inner_self.srv = make_server("0.0.0.0", self.port, self.app)
                 inner_self.ctx = self.app.app_context()
                 inner_self.ctx.push()
                 super().__init__()
@@ -240,16 +293,17 @@ class FileTransferServer:
         threading.Thread(target=shutdown_watcher, daemon=True).start()
 
     def stop(self):
-        if hasattr(self, 'server_thread'):
+        if hasattr(self, "server_thread"):
             self.server_thread.shutdown()
 
     def __repr__(self):
-        return f"<FTS route={self.route} port={self.port} direction={self.direction}>" 
-
+        return f"<FTS route={self.route} port={self.port} direction={self.direction}>"
 
     def record_transfer(self, path: Path):
         self.transfer_count += 1
-        self.logger.success("Recorded transfer ({} / {})", self.transfer_count, self.limit)
+        self.logger.success(
+            "Recorded transfer ({} / {})", self.transfer_count, self.limit
+        )
 
         if self.on_transfer:
             try:
