@@ -1,9 +1,9 @@
+import logging
 import sys
 import time
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
-
 
 class OffsecLogger:
     """
@@ -42,8 +42,7 @@ class OffsecLogger:
         "ERROR": "\033[91m",
         "CRITICAL": "\033[91;1m",
         "DEBUG": "\033[90m",
-        "STATUS": "\033[95m",  # magenta
-        "STAGE": "\033[95;1m",  # bright magenta
+        "STATUS": "\033[95m"
     }
 
     SYMBOLS = {
@@ -53,15 +52,13 @@ class OffsecLogger:
         "ERROR": "[-]",
         "CRITICAL": "[!]",
         "DEBUG": "[DEBUG]",
-        "STATUS": "[~]",
-        "STAGE": "[###]",
+        "STATUS": "[~]"
     }
 
     def __init__(self, logfile: Optional[str] = None, debug: bool = False):
         self.logfile = Path(logfile).resolve() if logfile else None
         self.debug_mode = debug
         self.timers = {}
-        self.padding = 8  # pad messages after symbols to align columns
 
         if self.logfile:
             self.logfile.parent.mkdir(parents=True, exist_ok=True)
@@ -80,10 +77,8 @@ class OffsecLogger:
             except Exception as e:
                 message = f"{message} [format error: {e}]"
 
-        # pad so all messages align after symbol
-        padded_symbol = f"{symbol:<{self.padding}}"
-        out = f"{padded_symbol}{message}"
-        colored = f"{color}{padded_symbol}{message}{reset}"
+        out = f"{symbol} {message}"
+        colored = f"{color}{symbol} {message}{reset}"
 
         print(colored)
         if self.logfile:
@@ -106,7 +101,7 @@ class OffsecLogger:
         self._write("ERROR", msg, *args)
 
     def critical(self, msg: str, *args):
-        self._write("CRITICAL", msg, *args)
+        self._write("CRITICAL", msg, args)
 
     def debug(self, msg: str, *args):
         if self.debug_mode:
@@ -124,9 +119,4 @@ class OffsecLogger:
         return None
 
     def status(self, msg: str, *args):
-        self._write("STATUS", msg, *args)
-
-    def stage(self, title: str):
-        """Mark a new exploit stage with a visible separator."""
-        line = f"===== {title.upper()} ====="
-        self._write("STAGE", line)
+        self._write("INFO", msg, *args)
