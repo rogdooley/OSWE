@@ -126,7 +126,11 @@ class OffsecLogger:
     def status(self, msg: str, *args):
         self._write("STATUS", msg, *args)
 
-    def stage(self, title: str):
+    def stage(self, title: str, timestamp: bool = False):
         """Mark a new exploit stage with a visible separator."""
-        line = f"===== {title.upper()} ====="
-        self._write("STAGE", line)
+
+        banner = f"===== {title.upper()} ====="
+        if timestamp:
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            banner = f"{banner}  ({ts})"
+        self._write("STAGE", banner)
