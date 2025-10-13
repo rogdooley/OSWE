@@ -12,7 +12,7 @@ import secrets
 import re
 import uuid
 import urllib.parse
-
+import psutil
 
 from bs4 import BeautifulSoup
 from pathlib import Path
@@ -143,6 +143,29 @@ def spawn_external_listener(listening_port: int):
         subprocess.Popen(["x-terminal-emulator", "-e", cmd])
     else:
         print(f"[!] No terminal available. Run manually:\n{cmd}")
+
+
+def wait_for_listener(
+    port: int,
+    logger,
+    host: str = "127.0.0.1",
+    timeout: int = 60,
+    interval: int = 3,
+) -> bool:
+    logger.info(f"[*] Waiting for listener on {host}:{port} (timeout={timeout}s)")
+    elapsed = 0
+
+    while elapsed < timeout:
+        for conn in psutil.net_connections(kind="inet"):
+            if conn.laddr.port == port and conn.status == psutil.CONN_LISTEN:
+                logger.success(f"[+] Listener detected on {host}:{port}")
+                return True
+
+        time.sleep(interval)
+        elapsed += interval
+
+    logger.error(f"[!] Timeout: No listener detected on {host}:{port}")
+    return False
 
 
 def check_response(
