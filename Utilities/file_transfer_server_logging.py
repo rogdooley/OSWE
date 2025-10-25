@@ -178,19 +178,37 @@ class FileTransferServer:
 
             @self.app.route("/exfil", methods=["GET"])
             def exfil():
-                self.logger.info("Exfil request to /exfil")
+                self.logger.info("Exfil request to /exfil from {}", request.remote_addr)
                 b64_data = request.args.get("q")
+                text_data = request.args.get("c")
                 filename = request.args.get("filename")
+            
+                ip = request.remote_addr
+                ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+            
                 if b64_data:
+                    try:
+                        if not filename:
+                            filename = f"{ip}_{ts}.bin"
+                        save_path = self._decode_and_save(b64_data, filename)
+                        self.logger.success("Saved base64 exfil: {}", save_path)
+                        return {"status": "ok", "path": str(save_path)}, 200
+                    except Exception as e:
+                        self.logger.warn("Base64 decode failed: {}", str(e))
+            
+                elif text_data:
                     if not filename:
-                        ip = request.remote_addr
-                        ts = datetime.now(timezone.utc).isoformat()
-                        filename = f"{ip}_{ts}"
-                    save_path = self._decode_and_save(b64_data, filename)
-                    self.logger.success("Exfil saved: {}", save_path)
+                        filename = f"{ip}_{ts}.log"
+                    save_path = self.save_dir / filename
+                    with open(save_path, "w") as f:
+                        f.write(text_data)
+                    self.logger.success("Saved text exfil: {}", save_path)
+                    return {"status": "ok", "path": str(save_path)}, 200
+            
                 else:
-                    self.logger.warn("Missing b64 data")
-                    abort(410)
+                    self.logger.warn("Missing 'q=' or 'c=' in /exfil")
+                    abort(400)
+
 
             @self.app.route("/collect", methods=["GET"])
             def collect():
