@@ -1,16 +1,15 @@
+import base64
+import logging
 import random
 import string
-import logging
 import threading
 import time
 import typing
-import base64
-
-from pathlib import Path
-from flask import Flask, request, send_file, abort, render_template_string
-from werkzeug.serving import make_server
 from datetime import datetime, timezone
+from pathlib import Path
 
+from flask import Flask, abort, render_template_string, request, send_file
+from werkzeug.serving import make_server
 
 """
 file_transfer_server.py
@@ -86,6 +85,10 @@ class FileTransferServer:
         "flask_app",
         "server",
         "shutdown_event",
+        "transfer_count",
+        "app",
+        "verbose_repr",
+        "server_thread",
     )
 
     def __init__(
