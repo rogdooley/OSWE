@@ -41,6 +41,8 @@ DEFAULT_EXCLUDE_DIRS = {
     "__pycache__",
     ".pytest_cache",
     "artifacts",
+    "ScreenShots",
+    ".git"
 }
 DEFAULT_EXCLUDE_EXTS = {".log", ".md", ".jpeg", ".lock"}
 DEFAULT_EXCLUDE_FILES = {"README.md", "Notes.md"}
