@@ -12,24 +12,23 @@ import secrets
 import re
 import uuid
 import urllib.parse
-import psutil
 
+from threading import Event
 from bs4 import BeautifulSoup
 from pathlib import Path
 from dataclasses import dataclass, asdict, field, fields
 from typing import Optional, Literal, Callable, Any, Type
 
 root_dir = Path(__file__).resolve().parent.parent
-# sys.path.append(str(root_dir)) # failed to work in exam setup
 sys.path.insert(0, str(root_dir))
-
+sys.path.insert(0,'../common')
 
 # If common isn't in ../../common, change root dir or change the imports as appropriate
 from common.offsec_logger import OffsecLogger
 from common.file_transfer_server import FileTransferServer
 from common.IdentityGenerator.identity_generator import IdentityGenerator
 from common.IdentityGenerator.specs.identity_spec import IdentitySpec
-
+from common.IdentityGenerator.providers.password_provider import PasswordProvider
 
 ARTIFACT_DIR = Path("artifacts")
 Identity = dict[str, Any]
@@ -53,6 +52,7 @@ class ExploitContext:
     api_port: int
     attacker_ip: str
     attacker_port: int
+    payload_port: int
     protocol: str = "http"
 
     # Auth state
@@ -81,6 +81,7 @@ class ExploitContext:
             api_port=args.target_api_port,  # maps to --target-api-port
             attacker_ip=args.listening_ip,  # maps to --listening-ip
             attacker_port=args.listening_port,  # maps to --listening-port
+            payload_port=args.payload_port # maps to --payload-port
         )
 
     # --- URL helpers ---
@@ -122,7 +123,7 @@ class ExploitContext:
         filtered_data = {k: v for k, v in data.items() if k in valid_keys}
 
         # Cast ports back to int if JSON saved them as str
-        for port_key in ("web_port", "api_port", "attacker_port"):
+        for port_key in ("web_port", "api_port", "attacker_port", "payload_port"):
             if port_key in filtered_data and isinstance(filtered_data[port_key], str):
                 filtered_data[port_key] = int(filtered_data[port_key])
 
@@ -145,29 +146,6 @@ def spawn_external_listener(listening_port: int):
         print(f"[!] No terminal available. Run manually:\n{cmd}")
 
 
-def wait_for_listener(
-    port: int,
-    logger,
-    host: str = "127.0.0.1",
-    timeout: int = 60,
-    interval: int = 3,
-) -> bool:
-    logger.info(f"[*] Waiting for listener on {host}:{port} (timeout={timeout}s)")
-    elapsed = 0
-
-    while elapsed < timeout:
-        for conn in psutil.net_connections(kind="inet"):
-            if conn.laddr.port == port and conn.status == psutil.CONN_LISTEN:
-                logger.success(f"[+] Listener detected on {host}:{port}")
-                return True
-
-        time.sleep(interval)
-        elapsed += interval
-
-    logger.error(f"[!] Timeout: No listener detected on {host}:{port}")
-    return False
-
-
 def check_response(
     response: httpx.Response,
     logger,
@@ -186,6 +164,32 @@ def check_response(
     if response.status_code != 200:
         logger.error(f"Unable to {action}: {response.text}")
         raise exc_type(f"{action.capitalize()} failed: {response.status_code}")
+
+
+def save_artifact(filename: str, content: str | dict | list) -> Path:
+    """
+    Save string or structured data to a file in the artifacts/ directory.
+
+    Args:
+        filename: Name of the file to save (e.g., "seed.txt", "admin_token.txt").
+        content:  String or JSON-serializable data.
+
+    Returns:
+        Full path to the saved artifact.
+    """
+    path = ARTIFACT_DIR / filename
+    ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(content, (dict, list)):
+        data = json.dumps(content, indent=2)
+    else:
+        data = str(content)
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(data)
+
+    logger.info(f"Saved artifact: {path}")
+    return path
 
 
 def parse_args():
@@ -222,6 +226,12 @@ def parse_args():
         type=int,
         default=9001,
         help="Port to listen for reverse shell (default: 9001)",
+    )
+    attacker_group.add_argument(
+        "--payload-port",
+        type=int,
+        default=9999,
+        help="Port to listen for xss or other payload (default: 9999)",
     )
 
     # --- Exploit options ---
@@ -316,9 +326,9 @@ def main():
         generator.save_identity(identity_path)
         logger.info(f"Identity saved to {identity_path}")
     else:
-        print(generator.as_json())
+        logger.info(f"Identity of generated user: {generator.as_json()}")
 
-    # Add code
+    # TODO: Exploit code goes here
 
     ctx.save()
 
