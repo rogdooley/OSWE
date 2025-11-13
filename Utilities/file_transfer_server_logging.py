@@ -1,14 +1,14 @@
+import base64
 import random
 import string
 import threading
 import time
-import base64
 import typing
-
-from pathlib import Path
-from flask import Flask, request, send_file, abort, render_template_string
-from werkzeug.serving import make_server
 from datetime import datetime, timezone
+from pathlib import Path
+
+from flask import Flask, abort, render_template_string, request, send_file
+from werkzeug.serving import make_server
 
 from .offsec_logger import OffsecLogger
 
@@ -91,6 +91,9 @@ class FileTransferServer:
         "flask_app",
         "server",
         "shutdown_event",
+        "transfer_count",
+        "app",
+        "server_thread",
     )
 
     def __init__(
@@ -182,33 +185,46 @@ class FileTransferServer:
                 b64_data = request.args.get("q")
                 text_data = request.args.get("c")
                 filename = request.args.get("filename")
-            
+
                 ip = request.remote_addr
                 ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-            
+
                 if b64_data:
                     try:
                         if not filename:
                             filename = f"{ip}_{ts}.bin"
                         save_path = self._decode_and_save(b64_data, filename)
+                        self.transfer_count += 1
                         self.logger.success("Saved base64 exfil: {}", save_path)
+                        if self.on_transfer:
+                            try:
+                                self.on_transfer(self.file_path, self.transfer_count)
+                            except Exception as e:
+                                self.logger.warn(
+                                    "on_transfer raised exception: {}", str(e)
+                                )
                         return {"status": "ok", "path": str(save_path)}, 200
                     except Exception as e:
                         self.logger.warn("Base64 decode failed: {}", str(e))
-            
+
                 elif text_data:
                     if not filename:
                         filename = f"{ip}_{ts}.log"
                     save_path = self.save_dir / filename
                     with open(save_path, "w") as f:
                         f.write(text_data)
+                    self.transfer_count += 1
+                    if self.on_transfer:
+                        try:
+                            self.on_transfer(self.file_path, self.transfer_count)
+                        except Exception as e:
+                            self.logger.warn("on_transfer raised exception: {}", str(e))
                     self.logger.success("Saved text exfil: {}", save_path)
                     return {"status": "ok", "path": str(save_path)}, 200
-            
+
                 else:
                     self.logger.warn("Missing 'q=' or 'c=' in /exfil")
                     abort(400)
-
 
             @self.app.route("/collect", methods=["GET"])
             def collect():

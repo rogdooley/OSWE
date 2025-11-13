@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
-import argparse, json, requests
+import argparse
+import json
 from pathlib import Path
-from http.cookiejar import Cookie
+
+import requests
+
 
 def load_session_cookie(session: requests.Session, path: Path):
     cookies = json.loads(path.read_text())
     for c in cookies:
-        session.cookies.set(
-            c["name"], c["value"], domain=c["domain"], path=c["path"]
-        )
+        session.cookies.set(c["name"], c["value"], domain=c["domain"], path=c["path"])
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

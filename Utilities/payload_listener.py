@@ -3,10 +3,9 @@ import argparse
 import base64
 import json
 import socket
-import threading
 import time
 from datetime import datetime
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
 """
@@ -39,9 +38,11 @@ Attribution required if redistributed.
 
 LOG_FILE = "received_payloads.log"
 
+
 def is_port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         return sock.connect_ex(("localhost", port)) == 0
+
 
 def wait_for_port(port: int, wait_secs: int):
     warned = False
@@ -51,6 +52,7 @@ def wait_for_port(port: int, wait_secs: int):
             warned = True
         time.sleep(wait_secs)
 
+
 def handle_payload(decoded: str, method: str):
     timestamp = datetime.utcnow().isoformat()
     entry = f"[{timestamp}] [{method}] {decoded}\n"
@@ -58,8 +60,16 @@ def handle_payload(decoded: str, method: str):
     with open(LOG_FILE, "a") as f:
         f.write(entry)
 
+
 class PayloadHandler(BaseHTTPRequestHandler):
-    def __init__(self, *args, param_name="payload", decode_b64=True, allowed_method=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        param_name="payload",
+        decode_b64=True,
+        allowed_method=None,
+        **kwargs,
+    ):
         self.param_name = param_name
         self.decode_b64 = decode_b64
         self.allowed_method = allowed_method
@@ -117,9 +127,16 @@ class PayloadHandler(BaseHTTPRequestHandler):
         else:
             self._process_request("POST")
 
+
 def run_server(port, param_name, decode_b64, allowed_method, wait_secs):
     def handler_factory(*args, **kwargs):
-        return PayloadHandler(*args, param_name=param_name, decode_b64=decode_b64, allowed_method=allowed_method, **kwargs)
+        return PayloadHandler(
+            *args,
+            param_name=param_name,
+            decode_b64=decode_b64,
+            allowed_method=allowed_method,
+            **kwargs,
+        )
 
     wait_for_port(port, wait_secs)
     server = HTTPServer(("0.0.0.0", port), handler_factory)
@@ -129,16 +146,31 @@ def run_server(port, param_name, decode_b64, allowed_method, wait_secs):
     except KeyboardInterrupt:
         print("\n[*] Server stopped.")
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Host an HTTP server to receive base64 (or raw) payloads.")
+    parser = argparse.ArgumentParser(
+        description="Host an HTTP server to receive base64 (or raw) payloads."
+    )
     parser.add_argument("--port", type=int, default=8000, help="Port to listen on")
-    parser.add_argument("--param", type=str, default="payload", help="Query/field name to extract")
-    parser.add_argument("--b64", action="store_true", help="Decode the payload from base64")
-    parser.add_argument("--method", choices=["GET", "POST"], help="Restrict to a single HTTP method")
-    parser.add_argument("--wait", type=int, default=5, help="Seconds to wait between port availability checks")
+    parser.add_argument(
+        "--param", type=str, default="payload", help="Query/field name to extract"
+    )
+    parser.add_argument(
+        "--b64", action="store_true", help="Decode the payload from base64"
+    )
+    parser.add_argument(
+        "--method", choices=["GET", "POST"], help="Restrict to a single HTTP method"
+    )
+    parser.add_argument(
+        "--wait",
+        type=int,
+        default=5,
+        help="Seconds to wait between port availability checks",
+    )
     args = parser.parse_args()
 
     run_server(args.port, args.param, args.b64, args.method, args.wait)
+
 
 if __name__ == "__main__":
     main()

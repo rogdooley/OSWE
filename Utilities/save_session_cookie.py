@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
-import argparse, json, requests
-from http.cookiejar import Cookie
+import argparse
+import json
 from pathlib import Path
+
+import requests
+
 
 def save_session_cookie(session: requests.Session, path: Path):
     cookie_dicts = [
@@ -12,11 +15,12 @@ def save_session_cookie(session: requests.Session, path: Path):
             "domain": c.domain,
             "path": c.path,
             "secure": c.secure,
-            "expires": c.expires
+            "expires": c.expires,
         }
         for c in session.cookies
     ]
     path.write_text(json.dumps(cookie_dicts, indent=2))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
