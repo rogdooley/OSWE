@@ -33,6 +33,5 @@ Each directory corresponds to a topic or lab area explored while studying for we
 ## Notes on Abandoned Sections
 
 - **CodeScanning/** — Experimental; left for historical reference but no longer maintained.
-- **GeneratedCodeToReview/** — Placeholder for secure-code-review practice; consider archiving separately if unused.
 
 ---

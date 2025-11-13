@@ -1,2 +1,0 @@
-celery_broker: redis://localhost:6379/0
-upload_dir: uploads
