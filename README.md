@@ -20,7 +20,6 @@ Each directory corresponds to a topic or lab area explored while studying for we
 | **CWEE/**                    | Supporting code and notes derived from the CWEE labs.                                                                        |
 | **CodeScanning/**            | Early experiments with automated source scanning and static analysis (abandoned).                                            |
 | **ExamPrep/**                | Skeletons and modules created during OSWE preparation.                                                                       |
-| **GeneratedCodeToReview/**   | Artificially generated or vulnerable code intended for secure-code-review practice.                                          |
 | **InjectionAttacks/**        | Mostly LDAP injection scripts from CWEE.                                                                                     |
 | **SQLi/**                    | SQL injection exploitation scripts.                                                                                          |
 | **Scanners/**                | Custom scanning utilities and quick enumeration tools. Was meant to be more, but I never came back to development work here. |
