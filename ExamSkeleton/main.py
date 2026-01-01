@@ -1,34 +1,22 @@
 import argparse
-import httpx
-import asyncio
-import aiofiles
-import sys
 import json
 import shutil
 import subprocess
-import time
-import base64
-import secrets
-import re
-import uuid
-import urllib.parse
-
-from threading import Event
-from bs4 import BeautifulSoup
+import sys
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
-from dataclasses import dataclass, asdict, field, fields
-from typing import Optional, Literal, Callable, Any, Type
+from typing import Any, Optional, Type
+
+import httpx
 
 root_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(root_dir))
-sys.path.insert(0,'../common')
+sys.path.insert(0, "../common")
 
 # If common isn't in ../../common, change root dir or change the imports as appropriate
-from common.offsec_logger import OffsecLogger
-from common.file_transfer_server import FileTransferServer
 from common.IdentityGenerator.identity_generator import IdentityGenerator
 from common.IdentityGenerator.specs.identity_spec import IdentitySpec
-from common.IdentityGenerator.providers.password_provider import PasswordProvider
+from common.offsec_logger import OffsecLogger
 
 ARTIFACT_DIR = Path("artifacts")
 Identity = dict[str, Any]
@@ -48,8 +36,8 @@ CHARSETS = {
 @dataclass(slots=True)
 class ExploitContext:
     target_ip: str
-    web_port: int
-    api_port: int
+    target_web_port: int
+    target_api_port: int
     attacker_ip: str
     attacker_port: int
     payload_port: int
@@ -77,11 +65,11 @@ class ExploitContext:
         """Build an ExploitContext from CLI arguments."""
         return cls(
             target_ip=args.target_ip,
-            web_port=args.target_port,  # maps to --target-port
-            api_port=args.target_api_port,  # maps to --target-api-port
+            target_web_port=args.target_port,  # maps to --target-port
+            target_api_port=args.target_target_api_port,  # maps to --target-api-port
             attacker_ip=args.listening_ip,  # maps to --listening-ip
             attacker_port=args.listening_port,  # maps to --listening-port
-            payload_port=args.payload_port # maps to --payload-port
+            payload_port=args.payload_port,  # maps to --payload-port
         )
 
     # --- URL helpers ---
@@ -93,10 +81,10 @@ class ExploitContext:
         return f"{self.protocol}://{host}{port_part}"
 
     def web_url(self) -> str:
-        return self._make_url(self.target_ip, self.web_port)
+        return self._make_url(self.target_ip, self.target_web_port)
 
     def api_url(self) -> str:
-        return self._make_url(self.target_ip, self.api_port)
+        return self._make_url(self.target_ip, self.target_api_port)
 
     def attacker_url(self) -> str:
         return self._make_url(self.attacker_ip, self.attacker_port)
@@ -123,7 +111,12 @@ class ExploitContext:
         filtered_data = {k: v for k, v in data.items() if k in valid_keys}
 
         # Cast ports back to int if JSON saved them as str
-        for port_key in ("web_port", "api_port", "attacker_port", "payload_port"):
+        for port_key in (
+            "target_web_port",
+            "target_api_port",
+            "attacker_port",
+            "payload_port",
+        ):
             if port_key in filtered_data and isinstance(filtered_data[port_key], str):
                 filtered_data[port_key] = int(filtered_data[port_key])
 
